@@ -1,0 +1,14 @@
+__pycache__
+*.egg-info
+build
+dist
+docs
+mkvs
+subtitles
+tests
+venv
+
+*.ass
+*.mkv
+
+!sample.ass
