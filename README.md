@@ -26,7 +26,7 @@ It makes the assumption that the videos and the subtitles share the same stem (t
 
 * the track id, an integer value which corresponds to the index of the track (default `0`);
 * the track name, enclosed by apostrophes (`'`, default `''`);
-* the track language, in ISO 639 standard (default `und`);
+* the track language, in [ISO 639](https://en.wikipedia.org/wiki/ISO_639-2) format (default `und`);
 * the track being marked as `default` (default `False`);
 * the track being marked as `forced` (default `False`).
 
