@@ -1,4 +1,5 @@
 __pycache__
+.vscode
 *.egg-info
 build
 dist
@@ -7,8 +8,7 @@ mkvs
 subtitles
 tests
 venv
-
 *.ass
+config.json
 *.mkv
-
-!sample.ass
+*.yaml
