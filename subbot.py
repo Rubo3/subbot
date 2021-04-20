@@ -244,5 +244,5 @@ def main(args, mkvmerge_path=None):
 
     [process.join() for process in processes]
 
-if __name__ == '__main__' and len(sys.args) > 1:
-    main(sys.args[1:])
+if __name__ == '__main__' and len(sys.argv) > 1:
+    main(sys.argv[1:])
