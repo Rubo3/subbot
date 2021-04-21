@@ -5,7 +5,7 @@ import sys
 
 import yaml
 
-from subbot import main
+from subbot import main, sigint_handler
 
 def glob_pattern(pattern):
     matches = []
@@ -64,6 +64,7 @@ def expand_args(args, config):
     return expanded_args
 
 if __name__ == '__main__' and len(sys.argv) > 1:
+    sigint_handler()
     args = sys.argv[1:]
     if not args:
         print('Upcoming help message...')
@@ -78,7 +79,7 @@ if __name__ == '__main__' and len(sys.argv) > 1:
         sys.exit(1)
 
     if 'projects' not in config:
-        print(f'No project found, please add at least one in {script_path / 'projects.yaml'}')
+        print(f'No project found, please add at least one in {script_path / "projects.yaml"}')
         sys.exit(2)
 
     expanded_args = expand_args(args, config)

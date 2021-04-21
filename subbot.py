@@ -1,8 +1,9 @@
 from multiprocessing import cpu_count, Lock, Process
 from pathlib import Path
-from traceback import print_exc
+from signal import SIGINT, signal
 import sys
 from subprocess import CalledProcessError, run
+from traceback import print_exc
 
 from pymkv import MKVFile, MKVTrack, verify_mkvmerge
 from pymkv.ISO639_2 import is_ISO639_2
@@ -12,6 +13,9 @@ from pymkv.ISO639_2 import is_ISO639_2
 # and make use of the standard error interface to pass the errors.
 # *maybe add an optional argument to only print the muxed filenames (and another column with the
 # project name?) one per line.
+
+def sigint_handler():
+    signal(SIGINT, lambda signalnum, stack_frame: sys.exit(0))
 
 # TODO: differentiate between general path arguments and configuration-specific path arguments.
 def generate_mux_queue(args):
@@ -28,7 +32,7 @@ def generate_mux_queue(args):
         if path_arg.is_file():
             if path_arg.suffix == '.ass':
                 subtitles.add(arg)
-            elif path_arg.suffix == '.mkv':
+            elif path_arg.suffix == '.mkv' or path_arg.suffix == '.mp4':
                 videos.add(arg)
         elif arg == '--output' or arg == '-o' and arg_index + 1 < args_len:
             output_path = args[arg_index + 1]
@@ -37,7 +41,7 @@ def generate_mux_queue(args):
             videos.clear()
             arg_index += 1
         arg_index += 1
-    if args_len > 2 and (args[-2] != '--output' or args[-2] != '-o'):
+    if args_len >= 2 and (args[-2] != '--output' or args[-2] != '-o'):
         paths[''] = {'subtitles': subtitles, 'videos': videos}
 
     for output_path in paths:
@@ -49,12 +53,12 @@ def generate_mux_queue(args):
             video = Path(videos.pop())
             operation = {
                 'mkv_path': video,
-                'output_path': Path(output_path) or video.parent.absolute(),
+                'output_path': Path(output_path) if output_path else video.parent.absolute(),
                 'subtitles': {}
             }
 
             for subtitle in subtitles:
-                if get_mkv_name(subtitle) == video.name:
+                if get_stripped_filename(subtitle) == video.stem:
                     discard_subtitles.append(subtitle)
                     properties = get_properties(subtitle)
                     if not properties:
@@ -69,13 +73,13 @@ def generate_mux_queue(args):
 # Special boundary characters to be supported:
 # https://gitlab.com/mbunkus/mkvtoolnix/-/wikis/Detecting-track-language-from-filename
 # TODO: must be rewritten in order to support the other separators
-def get_mkv_name(file_path):
+def get_stripped_filename(file_path):
     filename = Path(file_path).stem # works even with '.' as a separator
     splitted = filename.split(sep=' [')
     if len(splitted) == 1:
-        return filename + '.mkv'
+        return filename
     # The last string contains the subtitle track properties, if any, or, if naught, the MKV name.
-    return ' ['.join(splitted[:-1]) + '.mkv'
+    return ' ['.join(splitted[:-1])
 
 def get_properties(file_path):
     default_properties = {
@@ -112,7 +116,6 @@ def get_properties(file_path):
     final_properties.update(custom_properties)
     return final_properties
 
-# TODO: make it log(n)
 def first_available_path(path_pattern):
     if not Path.exists(path_pattern):
         return path_pattern
@@ -135,7 +138,7 @@ def first_available_path(path_pattern):
 def check_tracks(tracks):
     default_counter = 0
     for track in tracks:
-        if track['_track_type'] == 'subtitles' and track['default_track'] == True:
+        if track['_track_type'] == 'subtitles' and track['default_track'] is True:
             default_counter += 1
     if default_counter > 1:
         raise Exception('impossible to set more than one default subtitle track')
@@ -168,7 +171,6 @@ def mux_mkv(mkv_path, subtitle_properties, mux_path, mkvmerge_path):
                 mkv.add_track(subtitle_track)
 
     check_tracks(tracks=eval(str(mkv.get_track())))
-
     mkvmerge_command = mkv.command(mux_path, subprocess=True)
     run(mkvmerge_command, check=True, capture_output=True, text=True)
 
@@ -176,9 +178,34 @@ def worker(operations, lock, mkvmerge_path):
     for operation in operations:
         subtitles = operation['subtitles']
         output_path = operation['output_path']
-        mkv_path = operation['mkv_path']
-        mkv_name = Path(mkv_path).name
-        mux_path = first_available_path(output_path / mkv_name)
+        mkv_path = Path(operation['mkv_path'])
+        is_converted = False
+        if mkv_path.suffix != '.mkv':
+            mux_path = first_available_path(output_path / (mkv_path.stem + '.mkv.tmp'))
+            mkvmerge_command = ['mkvmerge', '-o', f'{mux_path}', f'{mkv_path}']
+            with lock:
+                print(f'Converting {mkv_path.name} in {mux_path}... ')
+            try:
+                run(mkvmerge_command, check=True, capture_output=True, text=True)
+            except CalledProcessError as cpe:
+                with lock:
+                    print('----------')
+                    if cpe.returncode == 1:
+                        print(f'Done muxing {mkv_path.name} in {mux_path}', end=', ')
+                    else: # returncode == 2
+                        print(f'Could not mux {mkv_path.name} in {mux_path}', end=', ')
+                    print('mkvmerge printed the following messages:')
+                    for line in cpe.stdout.splitlines():
+                        if line.startswith('Warning') or line.startswith('Error'):
+                            print(line)
+                    print('----------')
+            is_converted = True
+            mkv_path = mux_path
+            mkv_name = mkv_path.stem
+            mux_path = first_available_path(output_path / mkv_name)
+        else:
+            mkv_name = mkv_path.name
+            mux_path = first_available_path(output_path / mkv_name)
 
         with lock:
             print(f'Muxing {mkv_name} in {mux_path}... ')
@@ -186,6 +213,9 @@ def worker(operations, lock, mkvmerge_path):
             mux_mkv(mkv_path, subtitles, mux_path, mkvmerge_path)
             with lock:
                 print(f'Done muxing {mkv_name} in {mux_path}')
+            if is_converted:
+                print(f'Removing {mkv_path}...')
+                mkv_path.unlink()
         except CalledProcessError as cpe:
             with lock:
                 print('----------')
@@ -221,8 +251,8 @@ def main(args, mkvmerge_path=None):
     available_cores = cpu_count()
     num_workers = available_cores if available_cores <= total_operations else total_operations
     worker_operations, remaining_operations = divmod(total_operations, num_workers)
-    lock = Lock()
 
+    lock = Lock()
     processes = []
 
     for _ in range(num_workers):
@@ -245,4 +275,5 @@ def main(args, mkvmerge_path=None):
     [process.join() for process in processes]
 
 if __name__ == '__main__' and len(sys.argv) > 1:
+    sigint_handler()
     main(sys.argv[1:])
