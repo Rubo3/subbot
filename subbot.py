@@ -180,9 +180,10 @@ def worker(operations, lock, mkvmerge_path):
         output_path = operation['output_path']
         mkv_path = Path(operation['mkv_path'])
         is_converted = False
+
         if mkv_path.suffix != '.mkv':
             mux_path = first_available_path(output_path / (mkv_path.stem + '.mkv.tmp'))
-            mkvmerge_command = ['mkvmerge', '-o', f'{mux_path}', f'{mkv_path}']
+            mkvmerge_command = ['mkvmerge', '--output', f'{mux_path}', f'{mkv_path}']
             with lock:
                 print(f'Converting {mkv_path.name} in {mux_path}... ')
             try:
@@ -190,15 +191,14 @@ def worker(operations, lock, mkvmerge_path):
             except CalledProcessError as cpe:
                 with lock:
                     print('----------')
-                    if cpe.returncode == 1:
-                        print(f'Done muxing {mkv_path.name} in {mux_path}', end=', ')
-                    else: # returncode == 2
-                        print(f'Could not mux {mkv_path.name} in {mux_path}', end=', ')
                     print('mkvmerge printed the following messages:')
                     for line in cpe.stdout.splitlines():
                         if line.startswith('Warning') or line.startswith('Error'):
                             print(line)
                     print('----------')
+                    if cpe.returncode == 2:
+                        print(f'Could not mux {mkv_path.name} in {mux_path}')
+                        continue
             is_converted = True
             mkv_path = mux_path
             mkv_name = mkv_path.stem
@@ -211,29 +211,30 @@ def worker(operations, lock, mkvmerge_path):
             print(f'Muxing {mkv_name} in {mux_path}... ')
         try:
             mux_mkv(mkv_path, subtitles, mux_path, mkvmerge_path)
-            with lock:
-                print(f'Done muxing {mkv_name} in {mux_path}')
-            if is_converted:
-                print(f'Removing {mkv_path}...')
-                mkv_path.unlink()
         except CalledProcessError as cpe:
             with lock:
                 print('----------')
-                if cpe.returncode == 1:
-                    print(f'Done muxing {mkv_name} in {mux_path}', end=', ')
-                else: # returncode == 2
-                    print(f'Could not mux {mkv_name} in {mux_path}', end=', ')
-                print('mkvmerge printed the following messages:')
+                print('mkvmerge sent the following messages:')
                 for line in cpe.stdout.splitlines():
                     if line.startswith('Warning') or line.startswith('Error'):
                         print(line)
                 print('----------')
+                if cpe.returncode == 2:
+                    print(f'Could not mux {mkv_name} in {mux_path}')
+                    continue
         except Exception:
             with lock:
                 print('----------')
-                print(f'An error occurred while muxing {mkv_name} in {mux_path}:')
+                print(f'An error occurred while muxing {mkv_name} in {mux_path}, skipping...')
                 print_exc()
                 print('----------')
+            continue
+
+        with lock:
+            print(f'Done muxing {mkv_name} in {mux_path}')
+            if is_converted:
+                print(f'Removing {mkv_path}...')
+                mkv_path.unlink()
 
 def main(args, mkvmerge_path=None):
     if not mkvmerge_path:
@@ -251,7 +252,6 @@ def main(args, mkvmerge_path=None):
     available_cores = cpu_count()
     num_workers = available_cores if available_cores <= total_operations else total_operations
     worker_operations, remaining_operations = divmod(total_operations, num_workers)
-
     lock = Lock()
     processes = []
 
