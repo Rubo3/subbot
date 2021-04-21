@@ -1,4 +1,4 @@
-# Subbot
+# subbot
 
 subbot is a simple command-line tool which helps you automating the last part of subtitles management, taking from you the burden of merging them into their MKVs with the right parameters.
 
