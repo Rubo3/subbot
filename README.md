@@ -38,7 +38,7 @@ Currently subbot works with .mkv and .ass files only, and uses a slightly modifi
 
 ## One more thing
 
-I've provided another script, `subbotf.py`, which is an extension of subbot that aims to simplify the work even more, especially when you do it often and you have many projects to manage. It uses a `projects.yaml` file (hence the "f" of "subbotf"), placed within the same directory and structured like this:
+I've provided another script, `subbotf.py`, which is an extension to subbot that aims to simplify the job even more, especially when you do it often and you have many projects to manage. It needs a `projects.yaml` file (hence the "f" in "subbotf"), placed within the same directory of the script and structured like this (please note the following are all the options available):
 
 ```yaml
 projects:
@@ -55,7 +55,7 @@ mkvmerge_path: /custom/mkvmerge/path
 output_path: /global/output/path
 ```
 
-All your projects reside inside the `projects` dictionary, and every project has its own subtitles and video files, specified through the use of [globbing](https://en.wikipedia.org/wiki/Glob_(programming)) with one pattern, as in `Project1`, or with a list of patterns, as in `ProjectN`'s subtitles. You can also specify a custom `mkvmerge` command path, if it's not in your `$PATH`, a global output path and a per-project output path, with the latter having precedence over the first one, and the first one having precedence over the source video directory.
+Your projects reside in the `projects` dictionary, and every project has its own `subtitles` and `videos`, specified through the use of [globbing](https://en.wikipedia.org/wiki/Glob_(programming)) with one pattern, as in `Project1`, or with a list of patterns, as in `ProjectN`'s `subtitles`. You can also specify a custom `mkvmerge` command path, if it's not in your `$PATH`, a global output path and a per-project output path, with the latter having precedence over the first one, and the first one having precedence over the source video directory.
 
 The command syntax is as follows:
 
@@ -63,7 +63,7 @@ The command syntax is as follows:
 python subbotf.py P1/* PN/[glob]*
 ```
 
-Every argument consists of some (or all) characters of a project's name, separated by a slash (`/`), and the globbed stem of the files you want to merge. The script then matches the files with the pattern you have specified, generates the appropriate arguments and passes them to subbot.
+Every argument consists of some (or all) characters of a project's name, separated by a slash (`/`), and the globbed stem of the files you want to merge. The script then matches the files with the pattern you have specified, checks whether they are tracked in their respective project in `projects.yaml`, then generates the appropriate arguments and passes them to subbot.
 
 ## Contribution
 
