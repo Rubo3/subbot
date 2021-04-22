@@ -4,13 +4,13 @@ subbot is a simple command-line tool which helps you automating the last part of
 
 ## How to use
 
-You have to pass to it the videos and the subtitles paths you want to merge. Then, you can specify an optional directory path with `--output` or `-o`, where all the new video files will be multiplexed. The syntax is as follows:
+You have to pass to it the videos and the subtitles paths you want to merge, in any order you want. Then, you can specify an optional directory path with `--output` or `-o`, where all the new video files will be multiplexed. The syntax is as follows:
 
 ```sh
 python subbot.py /path/to/*.mkv /path/to/*.ass --output /output/path
 ```
 
-If you don't specify an output path, the source video path will be used, and a new video file will be created inside its directory, with a copy counter (e.g. ` (1)`, ` (2)`, etc.), as MKVToolNix does.
+If you don't specify an output path, the source video path will be used, and a new video file will be created inside its directory. If a video file with the same name as the new one already exists within the output directory, a copy counter will be added to the new one before its extension (e.g. ` (1)`, ` (2)`, etc.), as MKVToolNix does.
 
 For example, running:
 
