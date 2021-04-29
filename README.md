@@ -1,6 +1,6 @@
 # subbot
 
-subbot is a simple command-line tool which helps you automating the last part of subtitles management, taking from you the burden of merging them into their MKVs with the right parameters.
+subbot is a simple command-line tool which helps you automate the last part of subtitles management, taking from you the burden of merging them into their MKVs with the right parameters.
 
 ## How to use
 
@@ -34,7 +34,7 @@ I think an example speaks for itself: if you have a video named `example.mkv`, a
 
 This software works in parallel, it makes use of all the CPU cores and tries to balance the work load equally between all of them.
 
-Currently subbot works with .mkv and .ass files only, and uses a slightly modified version of Sheldon Woodward's [pymkv](https://github.com/sheldonkwoodward/pymkv), which supports passing to its objects a custom `mkvmerge` path.
+Currently subbot works with Matroska video (MKV) and Advanced SubStation Alpha (ASS) files only, and uses a slightly modified version of Sheldon Woodward's [pymkv](https://github.com/sheldonkwoodward/pymkv), which adds support for a custom `mkvmerge` binary path. Work needs to be done to add proper support for non-Matroska video files.
 
 ## One more thing
 
