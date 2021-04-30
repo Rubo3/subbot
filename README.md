@@ -25,7 +25,7 @@ will merge in `~/path4` the the files matched in `~/path1`, `~/path2` and `~/pat
 It makes the assumption that the videos and the subtitles share the same stem (the filename excluding the extension), except the subtitles filenames also have the properties you want to embed into the tracks, written in any order just before their extension, one after the other, enclosed by square brackets, with no other characters between them, and this block is preceded by a space (` `). The supported properties are:
 
 * the track id, an integer value which corresponds to the index of the track (default `0`);
-* the track name, enclosed by apostrophes (`'`, default `''`);
+* the track name, enclosed by apostrophes (`'`, default empty string);
 * the track language, in [ISO 639-2](https://en.wikipedia.org/wiki/ISO_639-2) format (default `und`);
 * the track being marked as `default` (default `False`);
 * the track being marked as `forced` (default `False`).
