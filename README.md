@@ -15,7 +15,7 @@ If you don't specify an output path, the source video path will be used, and a n
 For example, running:
 
 ```sh
-python subbot.py ~/path1/*.mkv ~/path2/*.mkv ~/path3/*.ass --output ~/path4 ~/path5/*.mkv ~/path6/*.ass
+python subbot.py ~/path1/*.mkv ~/path3/*.ass ~/path2/*.mkv --output ~/path4 ~/path5/*.mkv ~/path6/*.ass
 ```
 
 will merge in `~/path4` the the files matched in `~/path1`, `~/path2` and `~/path3`, while the files matched in `~/path5` and `~/path6` will be merged in `~/path5`, as no output path was specified. Please note that if you want to merge your files inside their source directories, you have to specify them after the last optional output path, or you have to not specify an output path at all.
