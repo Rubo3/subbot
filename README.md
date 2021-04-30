@@ -10,7 +10,7 @@ You have to pass to it the videos and the subtitles paths you want to merge, in 
 python subbot.py /path/to/*.mkv /path/to/*.ass --output /output/path
 ```
 
-If you don't specify an output path, the source video path will be used, and a new video file will be created inside its directory. If a video file with the same name as the new one already exists within the output directory, a copy counter will be added to the new one before its extension (e.g. ` (1)`, ` (2)`, etc.), as MKVToolNix does.
+If you don't specify an output path, the source video directory will be used, and a new video file will be created inside it. If a video file with the same name as the new one already exists within the output directory, a copy counter will be added to the new one before its extension (e.g. ` (1)`, ` (2)`, etc.), as MKVToolNix does.
 
 For example, running:
 
@@ -26,7 +26,7 @@ It makes the assumption that the videos and the subtitles share the same stem (t
 
 * the track id, an integer value which corresponds to the index of the track (default `0`);
 * the track name, enclosed by apostrophes (`'`, default `''`);
-* the track language, in [ISO 639](https://en.wikipedia.org/wiki/ISO_639-2) format (default `und`);
+* the track language, in [ISO 639-2](https://en.wikipedia.org/wiki/ISO_639-2) format (default `und`);
 * the track being marked as `default` (default `False`);
 * the track being marked as `forced` (default `False`).
 
