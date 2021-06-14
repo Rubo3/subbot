@@ -7,13 +7,12 @@ import yaml
 
 from subbot import main, sigint_handler
 
-def glob_pattern(pattern):
+def glob_pattern(patterns):
     matches = []
-    if isinstance(pattern, str):
-        matches = glob(pattern, recursive=True)
-    elif isinstance(pattern, list):
-        for pattern in pattern:
-            matches.extend(glob(pattern, recursive=True))
+    if isinstance(patterns, str):
+        patterns = [patterns,]
+    for pattern in patterns:
+        matches.extend(glob(pattern, recursive=True))
     return matches
 
 def match(pattern, string):
