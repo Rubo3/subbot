@@ -6,7 +6,7 @@ from subprocess import CalledProcessError, run
 from traceback import print_exc
 
 from pymkv import MKVFile, MKVTrack, verify_mkvmerge
-from pymkv.ISO639_2 import is_ISO639_2
+from pymkv.ISO639_2 import iso639_2_languages
 
 # TODO: check for duplicates, like `subbot KnK/0* Knk/1*`.
 # to make it composable, let it only print the muxed filenames (and only them?; only if piped?*),
@@ -106,7 +106,7 @@ def get_properties(file_path):
             custom_properties['_track_id'] = int(prop)
         elif prop[0] == prop[-1] == "'":
             custom_properties['track_name'] = prop[1:-1]
-        elif is_ISO639_2(prop) and not custom_properties.get('language', False):
+        elif prop in iso639_2_languages and not custom_properties.get('language', False):
             custom_properties['language'] = prop
         elif prop == 'default':
             custom_properties['default_track'] = True
