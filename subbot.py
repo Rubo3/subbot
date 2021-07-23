@@ -83,7 +83,7 @@ def strip_filename(file_path):
     return ' ['.join(splitted[:-1])
 
 def get_properties(file_path):
-    default_properties = {
+    properties = {
         'track_name': None,
         '_track_id': 0,
         'language': 'und',
@@ -92,36 +92,39 @@ def get_properties(file_path):
     }
 
     filename = Path(file_path).stem
-    splitted = filename.split(sep=' [') # there could be more than one ' [' in the file name,
-    properties = splitted[-1] # we need the last one, because that's where the properties are
-
-    if not properties[-1] == ']': # last character must be one of the special characters supported
+    splitted_filename = filename.split(sep=' [') # there could be more than one ' [' in the name,
+    properties_string = splitted_filename[-1] # we need the last one, that's where the properties are
+    if not properties_string[-1] == ']': # last character must be one of the special characters supported
         return {}
 
-    properties_list = []
-    properties = properties[:-1] # removes last ']'
-    properties_list = properties.split(sep='][')
-    custom_properties = {}
+    properties_string = properties_string[:-1] # remove last ']'
+    properties_list = properties_string.split(sep='][')
     for prop in properties_list:
-        if prop.isnumeric():
-            custom_properties['_track_id'] = int(prop)
+        if prop.isdigit():
+            properties['_track_id'] = int(prop)
         elif prop[0] == prop[-1] == "'":
-            custom_properties['track_name'] = prop[1:-1]
-        elif prop in iso639_2_languages and not custom_properties.get('language', False):
-            custom_properties['language'] = prop
+            properties['track_name'] = prop[1:-1]
+        elif prop in iso639_2_languages:
+            properties['language'] = prop
         elif prop == 'default':
-            custom_properties['default_track'] = True
+            properties['default_track'] = True
         elif prop == 'forced':
-            custom_properties['forced_track'] = True
-    final_properties = default_properties.copy()
-    final_properties.update(custom_properties)
-    return final_properties
+            properties['forced_track'] = True
+    return properties
 
 def get_available_path(path):
     copy_counter = 0
+    path_stem = path.stem
+    # Check if the path already contains a copy counter.
+    if path_stem[-1] == ')':
+        splitted_stem = path_stem.split(' (')
+        counter_candidate = splitted_stem[-1]
+        if counter_candidate.isdecimal():
+            copy_counter += counter_candidate
+            path_stem = ')'.join(splitted_stem) # remove trailing ')'
     while path.exists():
         copy_counter += 1
-        path = path.parent / (path.stem + f' ({copy_counter})' + path.suffix)
+        path = path.parent / (path_stem + f' ({copy_counter})' + path.suffix)
     return path
 
 def validate_tracks(tracks):
