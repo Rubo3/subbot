@@ -36,7 +36,7 @@ I think an example speaks for itself: if you have a video named `example.mkv`, a
 
 This software works in parallel, it makes use of all the CPU cores and tries to balance the work load equally between all of them.
 
-Currently subbot works with Matroska video (MKV) and Advanced SubStation Alpha (ASS) files only, and uses a modified version of Sheldon Woodward's [pymkv](https://github.com/sheldonkwoodward/pymkv), which adds support for a custom `mkvmerge` binary path and has no external dependencies. Work needs to be done to add proper support for non-Matroska source video files. At the moment, `mkvmerge` is invoked two times: the source video first gets converted to a temporary MKV file, then the new tracks are added using the temporary file as a base, finally the temporary file is deleted. MKVToolNix can convert and add the new tracks issuing `mkvmerge` only once, so a simpler method needs to be researched, maybe by slightly modifying pymkv.
+Currently subbot works with Matroska video (MKV) and Advanced SubStation Alpha (ASS) files only, and uses a modified version of Sheldon Woodward's [pymkv](https://github.com/sheldonkwoodward/pymkv), which adds support for a custom `mkvmerge` binary path and removes its external dependencies. Work needs to be done to add proper support for non-Matroska source video files. At the moment, `mkvmerge` is invoked two times: the source video first gets converted to a temporary MKV file, then the new tracks are added using the temporary file as a base, finally the temporary file is deleted. MKVToolNix can convert and add the new tracks issuing `mkvmerge` only once, so a simpler method needs to be researched, maybe by slightly modifying pymkv.
 
 ## One more thing
 
