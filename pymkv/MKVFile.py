@@ -40,12 +40,10 @@ from os import devnull
 from os.path import expanduser, isfile
 import subprocess as sp
 
-import bitmath
-
 from .MKVTrack import MKVTrack
 from .MKVAttachment import MKVAttachment
 from .Timestamp import Timestamp
-from .ISO639_2 import is_ISO639_2
+from .ISO639_2 import iso639_2_languages
 from .Verifications import verify_matroska, verify_mkvmerge
 
 
@@ -135,7 +133,7 @@ class MKVFile:
 
     @chapter_language.setter
     def chapter_language(self, language):
-        if language is not None and not is_ISO639_2(language):
+        if language is not None and language not in iso639_2_languages:
             raise ValueError('not an ISO639-2 language code')
         self._chapter_language = language
 
@@ -488,21 +486,19 @@ class MKVFile:
 
         Parameters
         ----------
-        size : :obj:`bitmath`, int
-            The size of each split file. Takes either a :obj:`bitmath` size object or an integer representing the
-            number of bytes.
+        size : int
+            The size of each split file. Takes an integer representing the number of bytes.
         link : bool, optional
             Determines if the split files should be linked together after splitting.
 
         Raises
         ------
         TypeError
-            Raised if if `size` is not a bitmath object or an integer.
+            Raised if if `size` is not an integer.
         """
-        if getattr(size, '__module__', None) == bitmath.__name__:
-            size = size.bytes
-        elif not isinstance(size, int):
-            raise TypeError('size is not a bitmath object or integer')
+
+        if not isinstance(size, int):
+            raise TypeError('size is not an integer')
         self._split_options = ['--split', 'size:{}'.format(size)]
         if link:
             self._split_options += '--link'
