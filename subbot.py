@@ -8,11 +8,12 @@ from traceback import print_exc
 from pymkv import MKVFile, MKVTrack, verify_mkvmerge
 from pymkv.ISO639_2 import iso639_2_languages
 
-# TODO: check for duplicates, like `subbot KnK/0* Knk/1*`.
-# to make it composable, let it only print the muxed filenames (and only them?; only if piped?*),
-# and make use of the standard error interface to pass the errors.
-# *maybe add an optional argument to only print the muxed filenames (and another column with the
-# project name?) one per line.
+# TODO: add the --mkvmerge_path argument, generate_mux_queue will have to be split in two functions
+# one will create the paths dictionary and track the optional arguments, the other will generate
+# the mux queue.
+# To make it composable, maybe add an argument to let it print the muxed filenames only (and only
+# them? only if piped? and another column with the project name? one per line?) and make use of the
+# standard error interface to pass the errors.
 
 def sigint_handler():
     signal(SIGINT, lambda signalnum, stack_frame: sys.exit(0))
@@ -29,7 +30,7 @@ def generate_mux_queue(args):
     while arg_index < args_len:
         arg = args[arg_index]
         path_arg = Path(arg)
-        if path_arg.is_file():
+        if path_arg.is_file(): # TODO: check file format regardless of the extension
             if path_arg.suffix == '.ass':
                 subtitles.add(arg)
             elif path_arg.suffix == '.mkv' or path_arg.suffix == '.mp4':
@@ -48,32 +49,32 @@ def generate_mux_queue(args):
         subtitles = paths[output_path]['subtitles']
         videos = paths[output_path]['videos']
 
-        while subtitles and videos:
-            discard_subtitles = []
-            video = Path(videos.pop())
-            operation = {
+        for video in videos:
+            video = Path(video)
+            job = {
                 'mkv_path': video,
                 'output_path': Path(output_path) if output_path else video.parent.absolute(),
                 'subtitles': {}
             }
+            discard_subtitles = []
 
             for subtitle in subtitles:
-                if get_stripped_filename(subtitle) == video.stem:
+                if strip_filename(subtitle) == video.stem:
                     discard_subtitles.append(subtitle)
                     properties = get_properties(subtitle)
                     if not properties:
                         print(f'No property has been found in {subtitle}, skipping...')
                         continue
-                    operation['subtitles'][subtitle] = properties
+                    job['subtitles'][subtitle] = properties
             [subtitles.discard(sub) for sub in discard_subtitles]
-            if operation['subtitles']:
-                mux_queue.append(operation)
+            if len(job['subtitles']) > 0:
+                mux_queue.append(job)
     return mux_queue
 
 # Special boundary characters to be supported:
 # https://gitlab.com/mbunkus/mkvtoolnix/-/wikis/Detecting-track-language-from-filename
 # TODO: must be rewritten in order to support the other separators
-def get_stripped_filename(file_path):
+def strip_filename(file_path):
     filename = Path(file_path).stem # works even with '.' as a separator
     splitted = filename.split(sep=' [')
     if len(splitted) == 1:
@@ -116,26 +117,14 @@ def get_properties(file_path):
     final_properties.update(custom_properties)
     return final_properties
 
-def first_available_path(path_pattern):
-    if not Path.exists(path_pattern):
-        return path_pattern
-
-    copy_counter = 1
-    path_parent = path_pattern.parent
-    path_stem = path_pattern.stem
-    # Check if the path already contains a copy counter.
-    if path_stem[-1] == ')':
-        splitted_stem = path_stem.split(' (')
-        counter_candidate = splitted_stem[-1]
-        if counter_candidate[:-1].isnumeric():
-            copy_counter += counter_candidate[:-1]
-            path_stem = ')'.join(splitted_stem) # remove trailing ')'
-
-    while (path_parent / (path_stem + f' ({copy_counter})' + path_pattern.suffix)).exists():
+def get_available_path(path):
+    copy_counter = 0
+    while path.exists():
         copy_counter += 1
-    return path_parent / (path_stem + f' ({copy_counter})' + path_pattern.suffix)
+        path = path.parent / (path.stem + f' ({copy_counter})' + path.suffix)
+    return path
 
-def check_tracks(tracks):
+def validate_tracks(tracks):
     default_counter = 0
     for track in tracks:
         if track['_track_type'] == 'subtitles' and track['default_track'] is True:
@@ -170,19 +159,19 @@ def mux_mkv(mkv_path, subtitle_properties, mux_path, mkvmerge_path):
             else:
                 mkv.add_track(subtitle_track)
 
-    check_tracks(tracks=eval(str(mkv.get_track())))
+    validate_tracks(eval(str(mkv.get_track())))
     mkvmerge_command = mkv.command(mux_path, subprocess=True)
     run(mkvmerge_command, check=True, capture_output=True, text=True)
 
-def worker(operations, lock, mkvmerge_path):
-    for operation in operations:
-        subtitles = operation['subtitles']
-        output_path = operation['output_path']
-        mkv_path = Path(operation['mkv_path'])
+def worker(jobs, lock, mkvmerge_path):
+    for job in jobs:
+        subtitles = job['subtitles']
+        output_path = job['output_path']
+        mkv_path = Path(job['mkv_path'])
         is_converted = False
 
         if mkv_path.suffix != '.mkv':
-            mux_path = first_available_path(output_path / (mkv_path.stem + '.mkv.tmp'))
+            mux_path = get_available_path(output_path / (mkv_path.stem + '.mkv.tmp'))
             mkvmerge_command = ['mkvmerge', '--output', f'{mux_path}', f'{mkv_path}']
             with lock:
                 print(f'Converting {mkv_path.name} in {mux_path}... ')
@@ -202,10 +191,10 @@ def worker(operations, lock, mkvmerge_path):
             is_converted = True
             mkv_path = mux_path
             mkv_name = mkv_path.stem
-            mux_path = first_available_path(output_path / mkv_name)
+            mux_path = get_available_path(output_path / mkv_name)
         else:
             mkv_name = mkv_path.name
-            mux_path = first_available_path(output_path / mkv_name)
+            mux_path = get_available_path(output_path / mkv_name)
 
         with lock:
             print(f'Muxing {mkv_name} in {mux_path}... ')
@@ -245,26 +234,26 @@ def main(args, mkvmerge_path=None):
         return
 
     mux_queue = generate_mux_queue(args)
-    total_operations = len(mux_queue)
-    if total_operations == 0:
+    total_jobs = len(mux_queue)
+    if total_jobs == 0:
         return
 
     available_cores = cpu_count()
-    num_workers = available_cores if available_cores <= total_operations else total_operations
-    worker_operations, remaining_operations = divmod(total_operations, num_workers)
+    num_workers = available_cores if available_cores <= total_jobs else total_jobs
+    worker_jobs, remaining_jobs = divmod(total_jobs, num_workers)
     lock = Lock()
     processes = []
 
     for _ in range(num_workers):
         worker_queue = []
-        if len(mux_queue) >= worker_operations:
+        if len(mux_queue) >= worker_jobs:
             additional_load = 0
-            if remaining_operations:
+            if remaining_jobs:
                 additional_load = 1
-                remaining_operations -= 1
-            num_operations = worker_operations + additional_load
-            worker_queue = mux_queue[:num_operations]
-            mux_queue = mux_queue[num_operations:]
+                remaining_jobs -= 1
+            num_jobs = worker_jobs + additional_load
+            worker_queue = mux_queue[:num_jobs]
+            mux_queue = mux_queue[num_jobs:]
         else:
             worker_queue = mux_queue
             mux_queue = []
