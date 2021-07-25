@@ -43,7 +43,7 @@ import subprocess as sp
 from .MKVTrack import MKVTrack
 from .MKVAttachment import MKVAttachment
 from .Timestamp import Timestamp
-from .ISO639_2 import iso639_2_languages
+from .ISO639_2 import ISO639_2_languages
 from .Verifications import verify_matroska, verify_mkvmerge
 
 
@@ -133,7 +133,7 @@ class MKVFile:
 
     @chapter_language.setter
     def chapter_language(self, language):
-        if language is not None and language not in iso639_2_languages:
+        if language is not None and language not in ISO639_2_languages:
             raise ValueError('not an ISO639-2 language code')
         self._chapter_language = language
 

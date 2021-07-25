@@ -3,7 +3,7 @@
 
 """ISO639-2 Three Character Language Codes"""
 
-iso639_2_languages = {
+ISO639_2_languages = {
   'aar', 'abk', 'ace', 'ach', 'ada', 'ady', 'afa', 'afh', 'afr', 'ain', 'aka', 'akk', 'alb', 'ale',
   'alg', 'alt', 'amh', 'ang', 'anp', 'apa', 'ara', 'arc', 'arg', 'arm', 'arn', 'arp', 'art', 'arw',
   'asm', 'ast', 'ath', 'aus', 'ava', 'ave', 'awa', 'aym', 'aze', 'bad', 'bai', 'bak', 'bal', 'bam',

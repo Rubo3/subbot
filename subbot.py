@@ -6,7 +6,7 @@ import sys
 from subprocess import CalledProcessError, run
 from traceback import print_exc
 
-from pymkv import identify_file, iso639_2_languages, MKVFile, MKVTrack, verify_matroska, \
+from pymkv import identify_file, ISO639_2_languages, MKVFile, MKVTrack, verify_matroska, \
     verify_mkvmerge
 
 # TODO:
@@ -106,7 +106,7 @@ def get_properties(filename):
             properties['_track_id'] = int(prop)
         elif prop[0] == prop[-1] == "'":
             properties['track_name'] = prop[1:-1]
-        elif prop in iso639_2_languages:
+        elif prop in ISO639_2_languages:
             properties['language'] = prop
         elif prop == 'default':
             properties['default_track'] = True
@@ -185,7 +185,7 @@ def worker(jobs, lock, mkvmerge_path):
         except Exception:
             with lock:
                 print('----------')
-                print(f'An error occurred while muxing {video_name} in {mux_path}, skipping...')
+                print(f'An exception occurred while muxing {video_name} in {mux_path}, skipping...')
                 print_exc()
                 print('----------')
             continue
@@ -231,6 +231,9 @@ def main(args, mkvmerge_path=None):
 
     [process.join() for process in processes]
 
-if __name__ == '__main__' and len(sys.argv) > 1:
+if __name__ == '__main__':
     sigint_handler()
-    main(sys.argv[1:])
+    if len(sys.argv) > 1:
+        main(sys.argv[1:])
+    else:
+        print('Upcoming help message...')

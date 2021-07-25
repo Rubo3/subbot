@@ -40,7 +40,7 @@ from os.path import expanduser, isfile
 import subprocess as sp
 
 from .Verifications import verify_supported
-from .ISO639_2 import iso639_2_languages
+from .ISO639_2 import ISO639_2_languages
 
 
 class MKVTrack:
@@ -190,7 +190,7 @@ class MKVTrack:
 
     @language.setter
     def language(self, language):
-        if language is None or language in iso639_2_languages:
+        if language is None or language in ISO639_2_languages:
             self._language = language
         else:
             raise ValueError('not an ISO639-2 language code')
