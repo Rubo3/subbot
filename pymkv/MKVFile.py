@@ -577,7 +577,7 @@ class MKVFile:
             raise ValueError(f'"{frames}" are not properly formatted frames')
         for f in f_flat:
             if not isinstance(f, int):
-                raise ValueError(f'"{frames}" are not properly formatted frames')
+                raise TypeError(f'frame "{f}" not an int')
         for f_1, f_2 in zip(f_flat[:-1], f_flat[1:]):
             if f_1 >= f_2:
                 raise ValueError(f'"{frames}" are not properly formatted frames')
