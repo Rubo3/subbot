@@ -9,6 +9,5 @@ subtitles
 tests
 venv
 *.ass
-config.json
 *.mkv
 *.yaml

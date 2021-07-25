@@ -213,10 +213,10 @@ class MKVTrack:
     @tags.setter
     def tags(self, file_path):
         if not isinstance(file_path, str):
-            raise TypeError('"{}" is not of type str'.format(file_path))
+            raise TypeError(f'"{file_path}" is not of type str')
         file_path = expanduser(file_path)
         if not isfile(file_path):
-            raise FileNotFoundError('"{}" does not exist'.format(file_path))
+            raise FileNotFoundError(f'"{file_path}" does not exist')
         self._tags = file_path
 
     @property

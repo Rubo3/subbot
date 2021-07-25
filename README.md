@@ -2,6 +2,8 @@
 
 subbot is a simple command-line tool which helps you automate the last part of subtitles management, taking from you the burden of merging them into their MKVs with the right parameters.
 
+A modified version of Sheldon Woodward's [pymkv](https://github.com/sheldonkwoodward/pymkv) is provided, which adds support for a custom `mkvmerge` binary path, lifts the restriction on MKV-only source files and removes its external dependencies. Currently subbot works with Matroska video (MKV), QuickTime/MP4 and Advanced SubStation Alpha (ASS) source files only. The restriction is hard-coded: while in theory it should work with all the file types supported by mkvmerge, tests need to be done to prove it.
+
 ## How to use
 
 You have to pass to it the videos and the subtitles paths you want to merge, in any order you want. Then, you can specify an optional directory path with `--output` or `-o`, where all the new video files will be multiplexed. The syntax is as follows:
@@ -36,8 +38,6 @@ I think an example speaks for itself: if you have a video named `example.mkv`, a
 
 This software works in parallel, it makes use of all the CPU cores and tries to balance the work load equally between all of them.
 
-Currently subbot works with Matroska video (MKV) and Advanced SubStation Alpha (ASS) files only, and uses a modified version of Sheldon Woodward's [pymkv](https://github.com/sheldonkwoodward/pymkv), which adds support for a custom `mkvmerge` binary path and removes its external dependencies. Work needs to be done to add proper support for non-Matroska source video files. At the moment, `mkvmerge` is invoked two times: the source video first gets converted to a temporary MKV file, then the new tracks are added using the temporary file as a base, finally the temporary file is deleted. MKVToolNix can convert and add the new tracks issuing `mkvmerge` only once, so a simpler method needs to be researched, maybe by slightly modifying pymkv.
-
 ## One more thing
 
 I've provided another script, `subbotf.py`, which is an extension to subbot that aims to simplify the job even more, especially when you do it often and you have many projects to manage. It depends on [PyYAML](https://pypi.org/project/PyYAML/) and needs a `projects.yaml` file (hence the "f" in "subbotf"), placed within the same directory of the script and structured like this (note the following are all the options available):
@@ -45,7 +45,7 @@ I've provided another script, `subbotf.py`, which is an extension to subbot that
 ```yaml
 projects:
     Project1:
-        subtitles: /path/to/project/subtitles/*.ass 
+        subtitles: /path/to/project/subtitles/*.ass
         videos: /path/to/project/videos/*.mkv
     ProjectN:
         videos: /path/to/other/project/videos/[glob]*.mkv

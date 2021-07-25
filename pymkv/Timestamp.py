@@ -131,7 +131,7 @@ class Timestamp:
             the basis of the timestamp.
         """
         if not isinstance(timestamp, (int, str)):
-            raise TypeError('"{}" is not str or int type'.format(type(timestamp)))
+            raise TypeError(f'"{type(timestamp)}" is not str or int type')
         else:
             self._hh = None
             self._mm = None
@@ -187,7 +187,7 @@ class Timestamp:
             The timestamp to be verified.
         """
         if not isinstance(timestamp, str):
-            raise TypeError('"{}" is not str type'.format(type(timestamp)))
+            raise TypeError(f'"{type(timestamp)}" is not str type')
         elif match('^[0-9]{1,2}(:[0-9]{1,2}){1,2}(\.[0-9]{1,9})?$', timestamp):
             return True
         return False
@@ -200,9 +200,9 @@ class Timestamp:
             extracted from this parameter.
         """
         if not isinstance(timestamp, (str, int)):
-            raise TypeError('"{}" is not str or int type'.format(type(timestamp)))
+            raise TypeError(f'"{type(timestamp)}" is not str or int type')
         elif isinstance(timestamp, str) and not Timestamp.verify(timestamp):
-            raise ValueError('"{}" is not a valid timestamp'.format(timestamp))
+            raise ValueError(f'"{timestamp}" is not a valid timestamp')
         elif isinstance(timestamp, str):
             # parse timestamp
             timestamp_groups = match('^(([0-9]{1,2}):)?([0-9]{1,2}):([0-9]{1,2})(\.([0-9]{1,9}))?$', timestamp).groups()
