@@ -40,7 +40,7 @@ Currently subbot works with Matroska video (MKV) and Advanced SubStation Alpha (
 
 ## One more thing
 
-I've provided another script, `subbotf.py`, which is an extension to subbot that aims to simplify the job even more, especially when you do it often and you have many projects to manage. It needs a `projects.yaml` file (hence the "f" in "subbotf"), placed within the same directory of the script and structured like this (please note the following are all the options available):
+I've provided another script, `subbotf.py`, which is an extension to subbot that aims to simplify the job even more, especially when you do it often and you have many projects to manage. It depends on [PyYAML](https://pypi.org/project/PyYAML/) and needs a `projects.yaml` file (hence the "f" in "subbotf"), placed within the same directory of the script and structured like this (note the following are all the options available):
 
 ```yaml
 projects:
