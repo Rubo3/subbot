@@ -14,8 +14,7 @@ from pymkv import identify_file, ISO639_2_languages, MKVFile, MKVTrack, verify_m
 #   one will create the paths dictionary and track the optional arguments, the other will generate
 #   the mux queue.
 # - To make it composable, maybe add an argument to let it print the muxed filenames only (and only
-#   them? only if piped? and another column with the project name? one per line?) and make use of the
-#   standard error interface to pass the errors.
+#   them? only if piped? and another column with the project name? one per line?).
 # - Rewrite get_properties in order to support the other separators:
 #   (https://gitlab.com/mbunkus/mkvtoolnix/-/wikis/Detecting-track-language-from-filename).
 # - Rewrite generate_mux_queue logic to be independent of videos and subtitles, check only filenames.
