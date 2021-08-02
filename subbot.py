@@ -70,7 +70,7 @@ def generate_mux_queue(args):
                     discard_subtitles.append(subtitle)
                     properties = get_properties(subtitle.stem)
                     if not properties:
-                        print(f'No property has been found in {subtitle}, skipping...')
+                        print(f'No property has been found in {subtitle}, skipping...', file=sys.stderr)
                         continue
                     job['subtitles'][subtitle] = properties
             [subtitles.discard(sub) for sub in discard_subtitles]
@@ -131,7 +131,7 @@ def get_available_path(path):
 
 def mux_mkv(mkv_path, subtitle_properties, mux_path, mkvmerge_path):
     mkv = MKVFile(mkv_path, mkvmerge_path=mkvmerge_path)
-    # Convert the list of custom dictionaries returned by get_track()
+    # Convert the list of MKVTracks (custom dictionaries) returned by get_track()
     # into a list of standard dictionaries.
     current_tracks = eval(str(mkv.get_track()))
 
@@ -159,7 +159,7 @@ def mux_mkv(mkv_path, subtitle_properties, mux_path, mkvmerge_path):
     mkvmerge_command = mkv.command(mux_path, subprocess=True)
     run(mkvmerge_command, check=True, capture_output=True, text=True)
 
-def worker(jobs, lock, mkvmerge_path):
+def worker(jobs, mkvmerge_path, stdout_lock, stderr_lock):
     for job in jobs:
         subtitles = job['subtitles']
         output_path = job['output_path']
@@ -167,33 +167,34 @@ def worker(jobs, lock, mkvmerge_path):
         video_name = video_path.name
         mux_path = get_available_path(output_path / (video_path.stem + '.mkv'))
 
-        with lock:
-            print(f'Muxing {video_name} in {mux_path}... ')
+        with stdout_lock:
+            print(f'Muxing {video_name} in {mux_path}... ', )
+
         try:
             mux_mkv(video_path, subtitles, mux_path, mkvmerge_path)
         except CalledProcessError as cpe:
-            with lock:
-                print('----------')
-                print('mkvmerge gave the following messages:')
+            with stderr_lock:
+                print('mkvmerge gave the following messages:', file=sys.stderr)
                 for line in cpe.stdout.splitlines():
                     if line.startswith('Warning') or line.startswith('Error'):
-                        print(line)
-                print('----------')
+                        print(line, file=sys.stderr)
                 if cpe.returncode == 2:
-                    print(f'Could not mux {video_name} in {mux_path}')
+                    print(f'Could not mux {video_name} in {mux_path}\n', file=sys.stderr)
                     continue
         except Exception:
-            with lock:
-                print('----------')
-                print(f'An exception occurred while muxing {video_name} in {mux_path}, skipping...')
-                print_exc()
-                print('----------')
+            with stderr_lock:
+                print(f'An exception occurred while muxing {video_name} in {mux_path}, skipping...', file=sys.stderr)
+                print_exc(limit='\n', file=sys.stderr)
             continue
 
-        with lock:
+        with stdout_lock:
             print(f'Done muxing {video_name} in {mux_path}')
 
 def main(args, mkvmerge_path=None):
+    if len(args) < 2:
+        print('Upcoming help message...')
+        return
+
     if not mkvmerge_path:
         mkvmerge_path = 'mkvmerge'
 
@@ -209,7 +210,8 @@ def main(args, mkvmerge_path=None):
     available_cores = cpu_count()
     num_workers = available_cores if available_cores <= total_jobs else total_jobs
     worker_jobs, remaining_jobs = divmod(total_jobs, num_workers)
-    lock = Lock()
+    stdout_lock = Lock()
+    stderr_lock = Lock()
     processes = []
 
     for _ in range(num_workers):
@@ -225,7 +227,7 @@ def main(args, mkvmerge_path=None):
         else:
             worker_queue = mux_queue
             mux_queue = []
-        process = Process(target=worker, args=(worker_queue, lock, mkvmerge_path))
+        process = Process(target=worker, args=(worker_queue, mkvmerge_path, stdout_lock, stderr_lock))
         processes.append(process)
         process.start()
 
@@ -233,7 +235,4 @@ def main(args, mkvmerge_path=None):
 
 if __name__ == '__main__':
     sigint_handler()
-    if len(sys.argv) > 1:
-        main(sys.argv[1:])
-    else:
-        print('Upcoming help message...')
+    main(sys.argv[1:])
