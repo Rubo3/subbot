@@ -25,15 +25,12 @@ def verify_mkvmerge(mkvmerge_path='mkvmerge'):
 
 def identify_file(file_path, mkvmerge_path='mkvmerge'):
     """Get information about about the source file. Same as `mvkmerge -J <file_path>`."""
-    if isinstance(file_path, os.PathLike):
-        file_path = str(file_path)
-    elif not isinstance(file_path, str):
-        raise TypeError(f'"{file_path}" is not of type str')
-    file_path = expanduser(file_path)
+    if not isinstance(file_path, (str, os.PathLike)):
+        raise TypeError(f'"{file_path}" is not of type str or os.PathLike')
     if not isfile(file_path):
         raise FileNotFoundError(f'"{file_path}" does not exist')
     try:
-        info = json.loads(sp.check_output([mkvmerge_path, '-J', expanduser(file_path)]).decode())
+        info = json.loads(sp.check_output([mkvmerge_path, '-J', file_path]).decode())
     except sp.CalledProcessError:
         raise ValueError(f'"{file_path}" could not be opened')
     return info
