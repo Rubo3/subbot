@@ -36,8 +36,6 @@ It makes the assumption that the videos and the subtitles share the same stem (t
 
 I think an example speaks for itself: if you have a video named `example.mkv`, a subtitle corresponding to it would be `example.ass`, which would use the default values provided above for all those properties. Another one would be `example [2]['Test'][default][eng].ass`, which would force the track to replace the current third track, would be named `Test`, would be marked as `default` and its language would be set to `eng`. As a safety measure, a track will be replaced by a new one only if both are subtitle tracks, otherwise the latter will be appended.
 
-This software works in parallel, it makes use of all the CPU cores and tries to balance the work load equally between all of them.
-
 ## One more thing
 
 I've provided another script, `subbotf.py`, which is an extension to `subbot` that aims to simplify the job even more, especially when you do it often and you have many projects to manage. It depends on [PyYAML](https://pypi.org/project/PyYAML/) and needs a `projects.yaml` file (hence the "f" in "subbotf"), placed within the same directory of the script and structured like this (note the following are all the options available):
@@ -62,10 +60,10 @@ Your projects reside in the `projects` dictionary, and every project has its own
 The command syntax is as follows:
 
 ```sh
-python subbotf.py P1/* PN/[glob]*
+python subbotf.py P1/* ... PN/[glob]*
 ```
 
-Every argument consists of some (or all) characters of a project's name, separated by a slash (`/`), and the globbed stem of the files you want to merge. The script then matches the files with the pattern you have specified, checks whether they are tracked in their respective project in `projects.yaml`, then generates the appropriate arguments and passes them to `subbot`.
+Every argument consists of some (or all) characters of a project's name (`PN`), separated by a slash (`/`), and the globbed stem of the files you want to merge. The script then matches the files with the pattern you have specified, checks whether they are tracked in their respective project in `projects.yaml`, then generates the appropriate arguments and passes them to `subbot`.
 
 ## Contribution
 
