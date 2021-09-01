@@ -23,7 +23,7 @@ from pymkv import identify_file, ISO639_2_languages, MKVFile, MKVTrack, verify_m
 def sigint_handler():
     signal(SIGINT, lambda signalnum, stack_frame: sys.exit(0))
 
-def generate_mux_queues(args):
+def generate_mux_queue(args):
     arg_index = 0
     args_len = len(args)
     mux_queue = []
