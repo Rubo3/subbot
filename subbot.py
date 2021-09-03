@@ -188,7 +188,7 @@ def process(job, mkvmerge_path):
             f'An exception occurred while muxing {video_name} in {mux_path}, skipping...',
             file=sys.stderr
         )
-        print_exc(limit='\n', file=sys.stderr)
+        print_exc(file=sys.stderr)
 
 def main(args, mkvmerge_path = None):
     if len(args) < 2:
