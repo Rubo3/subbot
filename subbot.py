@@ -18,6 +18,8 @@ from pymkv import identify_file, ISO639_2_languages, MKVFile, MKVTrack, verify_m
 #   (https://gitlab.com/mbunkus/mkvtoolnix/-/wikis/Detecting-track-language-from-filename).
 # - Rewrite generate_mux_queue logic to be independent of videos and subtitles, check only
 #   filenames.
+# - Check if it's better to get the mkvmerge binary path with an environment variable instead of
+#   passing it down to each function.
 
 # Shut down gracefully
 def sigint_handler():
@@ -190,13 +192,11 @@ def process(job, mkvmerge_path):
         )
         print_exc(file=sys.stderr)
 
-def main(args, mkvmerge_path = None):
+def main(args, mkvmerge_path = 'mkvmerge'):
     if len(args) < 2:
         print('Usage: python subbot.py file1 file2 ... fileN [--output dir]')
         return
 
-    if mkvmerge_path is None:
-        mkvmerge_path = 'mkvmerge'
     if not verify_mkvmerge(mkvmerge_path):
         print('Could not find mkvmerge, please add it to $PATH')
         return
