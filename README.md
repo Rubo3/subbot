@@ -4,6 +4,8 @@
 
 A modified version of Sheldon Woodward's [pymkv](https://github.com/sheldonkwoodward/pymkv) is provided, which adds support for a custom `mkvmerge` binary path, lifts the restriction on MKV-only source files and removes its external dependencies. Currently `subbot` works with Matroska video (MKV), QuickTime/MP4 and Advanced SubStation Alpha (ASS) source files only. The restriction is hard-coded: while in theory it should work with all the file types supported by `mkvmerge`, tests need to be done to prove it.
 
+As it prints in the standard output only the paths of the file being muxed (source) and of the muxed file (destination), it is composable with other programs, in the spirit of the Unix tradition. For example, its output can be piped to another program which uploads the muxed files somewhere.
+
 ## How to use
 
 You have to pass it at least two paths of the videos and the subtitles you want to merge, in any order you want. Then, you can specify an optional directory path with `--output` or `-o`, where all the new video files will be multiplexed. The syntax is as follows:
