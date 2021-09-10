@@ -12,9 +12,7 @@ from pymkv import identify_file, ISO639_2_languages, MKVFile, MKVTrack, verify_m
 # - Add the --mkvmerge_path argument, generate_mux_queue will have to be split in two functions
 #   one will create the paths dictionary and track the optional arguments, the other will generate
 #   the mux queue.
-# - To make it composable, maybe add an argument to let it print the muxed filenames only (and only
-#   them? only if piped? and another column with the project name? one per line?).
-# - Rewrite get_properties in order to support the other separators:
+# - Rewrite get_properties in order to support the other separators
 #   (https://gitlab.com/mbunkus/mkvtoolnix/-/wikis/Detecting-track-language-from-filename).
 # - Rewrite generate_mux_queue logic to be independent of videos and subtitles, check only
 #   filenames.
@@ -44,7 +42,7 @@ def generate_mux_queue(args):
                 elif file_type == 'Matroska' or file_type == 'QuickTime/MP4':
                     videos.add(Path(arg))
             else:
-                print(f'Could not recognise "{arg}", skipping...')
+                print(f'Unrecognised "{arg}", skipping...')
         elif arg == '--output' or arg == '-o' and arg_index + 1 < args_len \
         and isdir(args[arg_index + 1]):
             output_path = args[arg_index + 1]
@@ -74,7 +72,7 @@ def generate_mux_queue(args):
                     properties = get_properties(subtitle.stem)
                     if not properties:
                         print(
-                            f'No property has been found in {subtitle}, skipping...',
+                            f'No property found in "{subtitle}", skipping...',
                             file=sys.stderr
                         )
                         continue
@@ -138,8 +136,8 @@ def get_available_path(path):
 
 def mux_mkv(mkv_path, subtitle_properties, mux_path, mkvmerge_path):
     mkv = MKVFile(mkv_path, mkvmerge_path=mkvmerge_path)
-    # Convert the list of MKVTracks (custom dictionaries) returned by get_track()
-    # into a list of standard, iterable dictionaries.
+    # Convert the list of MKVTracks (custom, not iterable dictionaries) into a list of standard,
+    # iterable dictionaries.
     current_tracks = eval(str(mkv.get_track()))
 
     for subtitle_path in subtitle_properties:
@@ -173,21 +171,22 @@ def process(job, mkvmerge_path):
     video_name = video_path.name
     mux_path = get_available_path(output_path / (video_path.stem + '.mkv'))
 
-    print(f'Muxing {video_name} in {mux_path}... ', )
-
     try:
         mux_mkv(video_path, subtitles, mux_path, mkvmerge_path)
-        print(f'Done muxing {video_name} in {mux_path}')
+        print(f'{video_path}\t{mux_path}')
     except CalledProcessError as cpe:
-        print('mkvmerge gave the following messages:', file=sys.stderr)
+        print(
+            f'While muxing {video_path} in {mux_path}, `mkvmerge` gave the following messages:',
+            file=sys.stderr
+        )
         for line in cpe.stdout.splitlines():
             if line.startswith('Warning') or line.startswith('Error'):
                 print(line, file=sys.stderr)
         if cpe.returncode == 2:
-            print(f'Could not mux {video_name} in {mux_path}\n', file=sys.stderr)
+            print(f'Could not mux {video_path} in {mux_path}\n', file=sys.stderr)
     except Exception:
         print(
-            f'An exception occurred while muxing {video_name} in {mux_path}, skipping...',
+            f'While muxing {video_path} in {mux_path}, an exception occurred, skipping...',
             file=sys.stderr
         )
         print_exc(file=sys.stderr)
@@ -198,7 +197,7 @@ def main(args, mkvmerge_path = 'mkvmerge'):
         return
 
     if not verify_mkvmerge(mkvmerge_path):
-        print('Could not find mkvmerge, please add it to $PATH')
+        print('Could not find `mkvmerge`, please add it to $PATH')
         return
 
     mux_queue = generate_mux_queue(args)
