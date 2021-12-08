@@ -1,8 +1,8 @@
 from os.path import isfile, isdir
 from pathlib import Path
 from signal import SIGINT, signal
-import sys
 from subprocess import CalledProcessError, run
+import sys
 from traceback import print_exc
 
 from pymkv import identify_file, ISO639_2_languages, MKVFile, MKVTrack, verify_matroska, \
@@ -19,50 +19,46 @@ from pymkv import identify_file, ISO639_2_languages, MKVFile, MKVTrack, verify_m
 # - Check if it's better to get the mkvmerge binary path with an environment variable instead of
 #   passing it down to each function.
 
-# Shut down gracefully
+# Shut down gracefully.
 def sigint_handler():
     signal(SIGINT, lambda signalnum, stack_frame: sys.exit(0))
 
 def generate_mux_queue(args):
-    arg_index = 0
-    args_len = len(args)
-    mux_queue = []
     paths = {}
     subtitles = set()
     videos = set()
 
-    while arg_index < args_len:
-        arg = args[arg_index]
+    for i, arg in enumerate(args):
         if isfile(arg):
-            info = identify_file(arg)
-            if info['container']['recognized'] is True and info['container']['supported'] is True:
-                file_type = info['container']['type']
-                if file_type == 'SSA/ASS subtitles':
-                    subtitles.add(Path(arg))
-                elif file_type == 'Matroska' or file_type == 'QuickTime/MP4':
-                    videos.add(Path(arg))
-            else:
-                print(f'Unrecognised "{arg}", skipping...')
-        elif arg == '--output' or arg == '-o' and arg_index + 1 < args_len \
-        and isdir(args[arg_index + 1]):
-            output_path = args[arg_index + 1]
-            paths[output_path] = {'subtitles': subtitles.copy(), 'videos': videos.copy()}
+            container = identify_file(arg)['container']
+            if container['recognized'] is False or container['supported'] is False:
+                print(f'Unrecognised container for "{arg}", skipping...')
+                continue
+            file_type = container['type']
+            if file_type == 'SSA/ASS subtitles':
+                subtitles.add(Path(arg))
+            elif file_type in {'Matroska', 'QuickTime/MP4'}:
+                videos.add(Path(arg))
+        elif arg in {'--output', '-o'} and i + 1 < len(args) and isdir(args[i + 1]):
+            if len(subtitles) != 0 and len(videos) != 0:
+                output_path = args[i + 1]
+                paths[Path(output_path)] = {'subtitles': subtitles.copy(), 'videos': videos.copy()}
             subtitles.clear()
             videos.clear()
-            arg_index += 1
-        arg_index += 1
-    if subtitles and videos:
-        paths[''] = {'subtitles': subtitles.copy(), 'videos': videos.copy()}
 
+    if len(subtitles) != 0 and len(videos) != 0:
+        paths[Path.cwd()] = {'subtitles': subtitles.copy(), 'videos': videos.copy()}
+
+    mux_queue = []
     for output_path in paths:
         subtitles = paths[output_path]['subtitles']
         videos = paths[output_path]['videos']
 
         for video in videos:
             job = {
-                'video_path': video,
-                'output_path': Path(output_path) if output_path else video.parent.absolute(),
-                'subtitles': {}
+                'output_path': output_path,
+                'subtitles': {},
+                'video_path': video
             }
             discard_subtitles = []
 
@@ -134,7 +130,7 @@ def get_available_path(path):
         path = path.parent / (path_stem + f' ({copy_counter})' + path.suffix)
     return path
 
-def mux_mkv(mkv_path, subtitle_properties, mux_path, mkvmerge_path):
+def mux(mkv_path, subtitle_properties, mux_path, mkvmerge_path):
     mkv = MKVFile(mkv_path, mkvmerge_path=mkvmerge_path)
     # Convert the list of MKVTracks (custom, not iterable dictionaries) into a list of standard,
     # iterable dictionaries.
@@ -147,33 +143,29 @@ def mux_mkv(mkv_path, subtitle_properties, mux_path, mkvmerge_path):
             mkvmerge_path=mkvmerge_path,
             **subtitle_properties[subtitle_path]
         )
-
         # TODO: rewrite logic to make use of swap_tracks, move_track, etc.
         if 0 <= track_id < len(current_tracks) \
         and current_tracks[track_id]['_track_type'] == 'subtitles':
             mkv.replace_track(track_id, subtitle_track)
+            continue
+        for track in current_tracks:
+            if track['_track_type'] == 'subtitles' \
+            and track['track_name'] == subtitle_track.track_name:
+                mkv.replace_track(track['_track_id'], subtitle_track)
+                break
         else:
-            for track in current_tracks:
-                if track['_track_type'] == 'subtitles' \
-                and track['track_name'] == subtitle_track.track_name:
-                    mkv.replace_track(track['_track_id'], subtitle_track)
-                    break
-            else:
-                mkv.add_track(subtitle_track)
+            mkv.add_track(subtitle_track)
 
     mkvmerge_command = mkv.command(mux_path, subprocess=True)
     run(mkvmerge_command, check=True, capture_output=True, text=True)
 
 def process(job, mkvmerge_path):
-    subtitles = job['subtitles']
-    output_path = job['output_path']
-    video_path = job['video_path']
-    video_name = video_path.name
+    output_path, subtitles, video_path = job
     mux_path = get_available_path(output_path / (video_path.stem + '.mkv'))
 
     try:
-        mux_mkv(video_path, subtitles, mux_path, mkvmerge_path)
-        print(f'{video_path}\t{mux_path}')
+        mux(video_path, subtitles, mux_path, mkvmerge_path)
+        print(f'"{video_path}" -> "{mux_path}"')
     except CalledProcessError as cpe:
         print(
             f'While muxing {video_path} in {mux_path}, `mkvmerge` gave the following messages:',
@@ -201,8 +193,6 @@ def main(args, mkvmerge_path = 'mkvmerge'):
         return
 
     mux_queue = generate_mux_queue(args)
-    if len(mux_queue) == 0:
-        return
     for job in mux_queue:
         process(job, mkvmerge_path)
 
