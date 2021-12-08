@@ -2,7 +2,7 @@ from os.path import isfile, isdir
 from pathlib import Path
 from signal import SIGINT, signal
 from subprocess import CalledProcessError, run
-import sys
+from sys import argv, stderr, exit as _exit
 from traceback import print_exc
 
 from pymkv import identify_file, ISO639_2_languages, MKVFile, MKVTrack, verify_matroska, \
@@ -21,7 +21,7 @@ from pymkv import identify_file, ISO639_2_languages, MKVFile, MKVTrack, verify_m
 
 # Shut down gracefully.
 def sigint_handler():
-    signal(SIGINT, lambda signalnum, stack_frame: sys.exit(0))
+    signal(SIGINT, lambda signalnum, stack_frame: _exit(0))
 
 def generate_mux_queue(args):
     paths = {}
@@ -60,20 +60,15 @@ def generate_mux_queue(args):
                 'subtitles': {},
                 'video_path': video
             }
-            discard_subtitles = []
 
-            for subtitle in subtitles:
-                if strip_filename(subtitle.stem) == video.stem:
-                    discard_subtitles.append(subtitle)
-                    properties = get_properties(subtitle.stem)
-                    if not properties:
-                        print(
-                            f'No property found in "{subtitle}", skipping...',
-                            file=sys.stderr
-                        )
-                        continue
-                    job['subtitles'][subtitle] = properties
-            [subtitles.discard(sub) for sub in discard_subtitles]
+            matched_subs = {filter(lambda sub: strip_filename(sub.stem) == video.stem, subtitles)}
+            subtitles -= matched_subs # subs in matched_subs won't be consumed by other videos
+            for subtitle in matched_subs:
+                properties = get_properties(subtitle.stem)
+                if not properties:
+                    print(f'No property found in "{subtitle}", skipping...', file=stderr)
+                    continue
+                job['subtitles'][subtitle] = properties
             if len(job['subtitles']) > 0:
                 mux_queue.append(job)
     return mux_queue
@@ -169,19 +164,19 @@ def process(job, mkvmerge_path):
     except CalledProcessError as cpe:
         print(
             f'While muxing {video_path} in {mux_path}, `mkvmerge` gave the following messages:',
-            file=sys.stderr
+            file=stderr
         )
         for line in cpe.stdout.splitlines():
             if line.startswith('Warning') or line.startswith('Error'):
-                print(line, file=sys.stderr)
+                print(line, file=stderr)
         if cpe.returncode == 2:
-            print(f'Could not mux {video_path} in {mux_path}\n', file=sys.stderr)
+            print(f'Could not mux {video_path} in {mux_path}\n', file=stderr)
     except Exception:
         print(
             f'While muxing {video_path} in {mux_path}, an exception occurred, skipping...',
-            file=sys.stderr
+            file=stderr
         )
-        print_exc(file=sys.stderr)
+        print_exc(file=stderr)
 
 def main(args, mkvmerge_path = 'mkvmerge'):
     if len(args) < 2:
@@ -198,4 +193,4 @@ def main(args, mkvmerge_path = 'mkvmerge'):
 
 if __name__ == '__main__':
     sigint_handler()
-    main(sys.argv[1:])
+    main(argv[1:])
