@@ -11,3 +11,4 @@ venv
 *.ass
 *.mkv
 *.yaml
+subbot[!f]*
