@@ -1,5 +1,6 @@
 from fnmatch import fnmatch
 from glob import glob
+from os import environ, listdir
 from pathlib import Path
 import sys
 
@@ -16,7 +17,7 @@ def glob_pattern(patterns):
     return matches
 
 def match(pattern, string):
-    """Naive pattern matching, could (should) be improved."""
+    """Naive pattern matching, could (should) be improved, or removed."""
     pattern_i = 0
     for char in string:
         if char == pattern[pattern_i]:
@@ -65,20 +66,28 @@ def expand_args(args, config):
 if __name__ == '__main__' and len(sys.argv) > 1:
     sigint_handler()
     args = sys.argv[1:]
-    if not args:
+    if not len(args):
         print('Upcoming help message...')
         sys.exit(0)
 
-    script_path = Path(__file__).parent.absolute()
-    try:
-        with open(script_path / 'projects.yaml', encoding='utf8') as y:
-            config = yaml.safe_load(y)
-    except FileNotFoundError:
-        print(f'File projects.yaml not found, please add it in {script_path}', file=sys.stderr)
+    script_parent = Path(__file__).parent.absolute()
+    if 'SUBBOTF_PROJECTS' in environ:
+        projects = Path(environ['SUBBOTF_PROJECTS'])
+    elif 'projects.yaml' in listdir(script_parent):
+        projects = script_parent / 'projects.yaml'
+    else:
+        print(
+            f'File `projects.yaml` not found, please add it in `{script_parent}`,'
+             'or specify a file path in $SUBBOTF_PROJECTS',
+            file=sys.stderr
+        )
         sys.exit(1)
 
+    with open(projects) as y:
+        config = yaml.safe_load(y)
+
     if 'projects' not in config:
-        print(f'No project found, please add at least one in {script_path / "projects.yaml"}')
+        print(f'No project found, please add at least one in {script_parent / "projects.yaml"}')
         sys.exit(2)
 
     expanded_args = expand_args(args, config)
