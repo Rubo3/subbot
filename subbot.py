@@ -40,13 +40,13 @@ def generate_mux_queue(args):
             elif file_type in {'Matroska', 'QuickTime/MP4'}:
                 videos.add(Path(arg))
         elif arg in {'--output', '-o'} and i + 1 < len(args) and isdir(args[i + 1]):
-            if len(subtitles) != 0 and len(videos) != 0:
+            if subtitles and videos:
                 output_path = args[i + 1]
                 paths[Path(output_path)] = {'subtitles': subtitles.copy(), 'videos': videos.copy()}
             subtitles.clear()
             videos.clear()
 
-    if len(subtitles) != 0 and len(videos) != 0:
+    if subtitles and videos:
         paths[Path.cwd()] = {'subtitles': subtitles.copy(), 'videos': videos.copy()}
 
     mux_queue = []
@@ -67,11 +67,13 @@ def generate_mux_queue(args):
             for subtitle in matched_subs:
                 properties = get_properties(subtitle.stem)
                 if not properties:
-                    print(f'No property found in "{subtitle}", skipping...', file=stderr)
+                    print(f'No properties found in "{subtitle}", skipping...', file=stderr)
                     continue
                 job['subtitles'][subtitle] = properties
-            if len(job['subtitles']) > 0:
-                mux_queue.append(job)
+            if not job['subtitles']:
+                print(f'No subtitles found for "{video}", skipping...', file=stderr)
+                continue
+            mux_queue.append(job)
     return mux_queue
 
 def get_properties(filename):
@@ -161,9 +163,10 @@ def process(job, mkvmerge_path):
     output_path, subtitles, video_path = job.values()
     mux_path = get_available_path(output_path / (video_path.stem + '.mkv'))
 
+    print(f'Muxing "{video_path}" in "{mux_path}"...', end='')
+
     try:
         mux(video_path, subtitles, mux_path, mkvmerge_path)
-        print(f'"{video_path}" -> "{mux_path}"')
     except CalledProcessError as cpe:
         print(
             f'While muxing {video_path} in {mux_path}, `mkvmerge` gave the following messages:',
@@ -173,13 +176,15 @@ def process(job, mkvmerge_path):
             if line.startswith('Warning') or line.startswith('Error'):
                 print(line, file=stderr)
         if cpe.returncode == 2:
-            print(f'Could not mux {video_path} in {mux_path}\n', file=stderr)
+            print(f'Could not mux {video_path} in {mux_path}', file=stderr)
     except Exception:
         print(
             f'While muxing {video_path} in {mux_path}, an exception occurred, skipping...',
             file=stderr
         )
         print_exc(file=stderr)
+
+    print(f'done.')
 
 def main(args, mkvmerge_path = 'mkvmerge'):
     if len(args) < 2:
