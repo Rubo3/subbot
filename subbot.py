@@ -163,7 +163,7 @@ def process(job, mkvmerge_path):
     output_path, subtitles, video_path = job.values()
     mux_path = get_available_path(output_path / (video_path.stem + '.mkv'))
 
-    print(f'Muxing "{video_path}" in "{mux_path}"...', end='')
+    print(f'Muxing "{video_path}" in "{mux_path}"... ', end='')
 
     try:
         mux(video_path, subtitles, mux_path, mkvmerge_path)
