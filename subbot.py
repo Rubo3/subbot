@@ -158,7 +158,7 @@ def mux(mkv_path, subtitle_properties, mux_path, mkvmerge_path):
     run(mkvmerge_command, check=True, capture_output=True, text=True)
 
 def process(job, mkvmerge_path):
-    output_path, subtitles, video_path = job
+    output_path, subtitles, video_path = job.values()
     mux_path = get_available_path(output_path / (video_path.stem + '.mkv'))
 
     try:
