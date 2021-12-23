@@ -31,7 +31,7 @@ def generate_mux_queue(args):
     for i, arg in enumerate(args):
         if isfile(arg):
             container = identify_file(arg)['container']
-            if container['recognized'] is False or container['supported'] is False:
+            if not container['recognized'] or not container['supported']:
                 print(f'Unrecognised container for "{arg}", skipping...')
                 continue
             file_type = container['type']
@@ -55,13 +55,14 @@ def generate_mux_queue(args):
         videos = paths[output_path]['videos']
 
         for video in videos:
+            check_match = lambda sub: strip_properties(sub.stem) == video.stem
             job = {
                 'output_path': output_path,
                 'subtitles': {},
                 'video_path': video
             }
 
-            matched_subs = {filter(lambda sub: strip_filename(sub.stem) == video.stem, subtitles)}
+            matched_subs = set(filter(check_match, subtitles))
             subtitles -= matched_subs # subs in matched_subs won't be consumed by other videos
             for subtitle in matched_subs:
                 properties = get_properties(subtitle.stem)
@@ -72,13 +73,6 @@ def generate_mux_queue(args):
             if len(job['subtitles']) > 0:
                 mux_queue.append(job)
     return mux_queue
-
-def strip_filename(filename):
-    splitted = filename.split(sep=' [')
-    if len(splitted) == 1:
-        return filename
-    # The last string contains the subtitle track properties, if any, or, if naught, the MKV name.
-    return ' ['.join(splitted[:-1])
 
 def get_properties(filename):
     properties = {
@@ -110,10 +104,19 @@ def get_properties(filename):
             properties['forced_track'] = True
     return properties
 
+def strip_properties(filename):
+    # There could be other ' [' before the properties, we shall consider them
+    # part of the file name, thus `splitted` is a list of strings, not just a string.
+    splitted = filename.split(sep=' [')
+    if len(splitted) == 1: # `filename` does not contain properties
+        return filename
+    # The properties are in the last string, so we don't consider them here.
+    return ' ['.join(splitted[:-1])
+
 def get_available_path(path):
     copy_counter = 0
     path_stem = path.stem
-    # Check if the path already contains a copy counter.
+    # Check if the path already contains a copy counter of the type ' (N)'.
     if path_stem[-1] == ')':
         splitted_stem = path_stem.split(' (')
         counter_candidate = splitted_stem[-1]
@@ -180,7 +183,7 @@ def process(job, mkvmerge_path):
 
 def main(args, mkvmerge_path = 'mkvmerge'):
     if len(args) < 2:
-        print('Usage: python subbot.py file1 file2 ... fileN [--output dir]')
+        print('Usage: subbot file1.mkv file1.ass ... [--output dir]')
         return
 
     if not verify_mkvmerge(mkvmerge_path):
