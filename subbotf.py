@@ -1,4 +1,4 @@
-from fnmatch import fnmatch
+from fnmatch import filter as fnfilter, fnmatch
 from glob import glob
 from os import environ, listdir
 from pathlib import Path
@@ -16,41 +16,31 @@ def glob_pattern(patterns):
         matches.extend(glob(pattern, recursive=True))
     return matches
 
-def match(pattern, string):
-    """Naive pattern matching, could (should) be improved, or removed."""
-    pattern_i = 0
-    for char in string:
-        if char == pattern[pattern_i]:
-            pattern_i += 1
-            if pattern_i == len(pattern):
-                return string
-    return ''
-
 def expand_args(args, config):
     expanded_args = []
 
     for arg in args:
         project_pattern, file_pattern = arg.split('/')
-        for project in config['projects']:
-            if match(project_pattern, project):
-                break
-        else:
-            print(f'No project matches the pattern in {arg}')
+        matched_projects = fnfilter(config['projects'], project_pattern)
+        if not matched_projects:
+            print(f'No project matches the pattern in "{arg}"')
             continue
+        project = matched_projects[0]
+        check_match = lambda filepath: fnmatch(Path(filepath).name, file_pattern)
 
-        project_subtitles = glob_pattern(config['projects'][project]['subtitles'])
-        subtitles = {sub for sub in project_subtitles if fnmatch(Path(sub).name, file_pattern)}
-        if not subtitles:
-            print(f'No subtitle found for {arg}, skipping...')
+        subtitles = glob_pattern(config['projects'][project]['subtitles'])
+        matched_subtitles = filter(check_match, subtitles)
+        if not matched_subtitles:
+            print(f'No subtitles found for "{arg}", skipping...')
             continue
-        expanded_args.extend(subtitles)
+        expanded_args.extend(matched_subtitles)
 
-        project_videos = glob_pattern(config['projects'][project]['video'])
-        videos = {video for video in project_videos if fnmatch(Path(video).name, file_pattern)}
-        if not videos:
-            print(f'No video found for {arg}, skipping...')
+        videos = glob_pattern(config['projects'][project]['video'])
+        matched_videos = filter(check_match, videos)
+        if not matched_videos:
+            print(f'No video found for "{arg}", skipping...')
             continue
-        expanded_args.extend(videos)
+        expanded_args.extend(matched_videos)
 
         output_path = ''
         # The per-project `output_path` has precedence over the global `output_path`,
@@ -63,11 +53,11 @@ def expand_args(args, config):
 
     return expanded_args
 
-if __name__ == '__main__' and len(sys.argv) > 1:
+if __name__ == '__main__':
     sigint_handler()
     args = sys.argv[1:]
-    if not len(args):
-        print('Upcoming help message...')
+    if not args:
+        print('Usage: subbotf proj*1/file1* ...')
         sys.exit(0)
 
     script_parent = Path(__file__).parent.absolute()
