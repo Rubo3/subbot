@@ -183,7 +183,7 @@ def process(job, mkvmerge_path):
 
 def main(args, mkvmerge_path = 'mkvmerge'):
     if len(args) < 2:
-        print('Usage: subbot file1.mkv file1.ass ... [--output dir]')
+        print('Usage: subbot file1.vid file1.sub ... [--output dir]')
         return
 
     if not verify_mkvmerge(mkvmerge_path):
