@@ -11,7 +11,7 @@ As it prints in the standard output only the paths of the file being muxed (sour
 You have to pass it at least two paths of the videos and the subtitles you want to merge, in any order you want. Then, you can specify an optional directory path with `--output` or `-o`, where all the new video files will be multiplexed. The syntax is as follows:
 
 ```sh
-python subbot.py file1 file2 ... fileN [--output dir]
+python subbot.py file1.vid file1.sub ... [--output dir]
 ```
 
 If you don't specify an output directory path, the source video parent directory will be used, and a new video file will be created inside it. If a video file with the same name as the new one already exists within the output directory, a copy counter will be added to the new one before its extension (e.g. ` (1)`, ` (2)`, etc.), as MKVToolNix does.
@@ -62,10 +62,10 @@ Your projects reside in the `projects` dictionary, and every project has its own
 The command syntax is as follows:
 
 ```sh
-python subbotf.py P1/* ... PN/[glob]*
+python subbotf.py proj*1/file1* ...
 ```
 
-Every argument consists of some (or all) characters of a project's name (`PN`), separated by a slash (`/`), and the globbed stem of the files you want to merge. The script then matches the files with the pattern you have specified, checks whether they are tracked in their respective project in `projects.yaml`, then generates the appropriate arguments and passes them to `subbot`.
+Every argument consists of a glob of a project's name (`proj*1`), separated by a slash (`/`), and a glob of the videos and subtitles files you want to merge. The script then matches the files with the pattern you have specified, checks whether they are tracked in their respective project in `projects.yaml`, then generates the appropriate arguments and passes them to `subbot`.
 
 ## Contribution
 
