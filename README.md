@@ -67,7 +67,7 @@ The command syntax is as follows:
 python subbotf.py proj*1/file1* ...
 ```
 
-Every argument consists of a glob of a project's name (`proj*1`), separated by a slash (`/`), and a glob of the videos and subtitles files you want to merge. The script then matches the files with the pattern you have specified, checks whether they are tracked in their respective project in `projects.yaml`, then generates the appropriate arguments and passes them to `subbot`. If an argument does not contain exactly one `/`, it will be not recognised and therefore will be skipped.
+Every argument consists of a glob of a project's name (e.g. `proj*1`), separated by a slash (`/`), and a glob of the videos and subtitles files you want to merge (e.g. `file1*`). The script then matches the files with the pattern you have specified, checks whether they are tracked in their respective project in `projects.yaml`, then generates the appropriate arguments and passes them to `subbot`. If an argument does not contain exactly one `/`, it will be not recognised and therefore will be skipped.
 
 As a nice touch, when `mkvmerge` is running, a `tqdm` progress bar shows the current percentage of the process' completion.
 
