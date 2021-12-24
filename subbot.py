@@ -22,6 +22,7 @@ from pymkv import identify_file, ISO639_2_languages, MKVFile, MKVTrack, verify_m
 #   filenames.
 # - Check if it's better to get the mkvmerge binary path with an environment variable instead of
 #   passing it down to each function.
+# - Rewrite the logic of `mux` to make use of swap_tracks, move_track, etc.
 
 # Shut down gracefully.
 def sigint_handler():
@@ -148,7 +149,6 @@ def mux(mkvmerge_path, video_path, mux_path, subtitle_properties):
                 mkvmerge_path=mkvmerge_path,
                 **subtitle_properties[subtitle_path]
             )
-            # TODO: rewrite logic to make use of swap_tracks, move_track, etc.
             if 0 <= track_id < len(current_tracks) \
             and current_tracks[track_id]['_track_type'] == 'subtitles':
                 mkv.replace_track(track_id, subtitle_track)
