@@ -42,7 +42,7 @@ I think an example speaks for itself: if you have a video named `example.mkv`, a
 
 ## One more thing
 
-I've provided another script, `subbotf.py`, which is an extension to `subbot` that aims to simplify the job even more, especially when you do it often and you have many projects to manage. It depends on [PyYAML](https://pypi.org/project/PyYAML/) and [tqdm](https://pypi.org/project/tqdm/) and needs a `projects.yaml` file (hence the `f` in `subbotf`), placed within the same directory of the script, or another file whose absolute path is specified in the `$SUBBOTF_PROJECTS` environment variable, and structured like this (note the following are all the options available):
+I've provided another script, `subbotf.py`, which is an extension to `subbot` that aims to simplify the job even more, especially when you do it often and you have many projects to manage. It depends on [PyYAML](https://pypi.org/project/PyYAML/) and [tqdm](https://pypi.org/project/tqdm/) and needs a `projects.yaml` file (hence the `f` of "file" in `subbotf`), placed within the same directory of the script, or another YAML file whose absolute path is specified in the `$SUBBOTF_PROJECTS` environment variable (it has precedence over `projects.yaml`), structured like this (note the following are all the options available):
 
 ```yaml
 projects:
