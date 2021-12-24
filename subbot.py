@@ -187,7 +187,7 @@ def main(args, mkvmerge_path = which('mkvmerge') or 'mkvmerge', show_progress = 
         if process is None:
             continue
         if show_progress is not None:
-            show_progress(process=process, mux_path=str(mux_path))
+            show_progress(process, str(mux_path))
         returncode = process.wait()
         for line in process.stdout:
             if line.startswith(('Warning', 'Error')):
