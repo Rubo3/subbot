@@ -4,10 +4,8 @@ import re
 from shutil     import which
 from signal     import SIGINT, signal
 import subprocess
-from sys        import argv, stderr, exit as _exit
+from sys        import argv, stderr, exit as sysexit
 from traceback  import print_exc
-
-from tqdm import tqdm
 
 from pymkv import identify_file, ISO639_2_languages, MKVFile, MKVTrack, verify_matroska, \
     verify_mkvmerge
@@ -26,7 +24,7 @@ from pymkv import identify_file, ISO639_2_languages, MKVFile, MKVTrack, verify_m
 
 # Shut down gracefully.
 def sigint_handler():
-    signal(SIGINT, lambda signalnum, stack_frame: _exit(0))
+    signal(SIGINT, lambda signalnum, stack_frame: sysexit(0))
 
 def generate_mux_queue(args):
     paths = {}
@@ -172,25 +170,7 @@ def mux(mkvmerge_path, video_path, mux_path, subtitle_properties):
         print_exc(file=stderr)
         return None
 
-def show_progress(process, desc):
-    with tqdm(
-        range(100), desc, leave=False, file=stderr, bar_format='{l_bar}{bar}|{elapsed}'
-    ) as pbar:
-        curr_percentage = 0
-        last_percentage = 0
-        for line in process.stdout:
-            match = re.search('Progress: (\\d+)%', line)
-            if line.startswith(('Warning', 'Error')):
-                pbar.write(line.strip(), file=stderr)
-            if match is None:
-                continue
-            curr_percentage = int(match.group(1))
-            pbar.update(curr_percentage - last_percentage)
-            last_percentage = curr_percentage
-        if pbar.n == 0: # an error occurred
-            pbar.clear()
-
-def main(args, mkvmerge_path = which('mkvmerge') or 'mkvmerge'):
+def main(args, mkvmerge_path = which('mkvmerge') or 'mkvmerge', show_progress = None):
     if len(args) < 2:
         print('Usage: subbot file1.vid file1.sub ... [--output dir]')
         return 0
@@ -206,8 +186,12 @@ def main(args, mkvmerge_path = which('mkvmerge') or 'mkvmerge'):
         process = mux(mkvmerge_path, video_path, mux_path, subtitles)
         if process is None:
             continue
-        show_progress(process, str(mux_path))
+        if show_progress is not None:
+            show_progress(process=process, mux_path=str(mux_path))
         returncode = process.wait()
+        for line in process.stdout:
+            if line.startswith(('Warning', 'Error')):
+                print(line.strip(), file=stderr)
         if returncode == 0:
             print(mux_path)
         elif returncode == 2:
@@ -216,4 +200,4 @@ def main(args, mkvmerge_path = which('mkvmerge') or 'mkvmerge'):
 if __name__ == '__main__':
     sigint_handler()
     args = argv[1:]
-    sys.exit(main(args))
+    sysexit(main(args))

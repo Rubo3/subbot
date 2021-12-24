@@ -2,9 +2,11 @@ from fnmatch import filter as fnfilter, fnmatch
 from glob    import glob
 from os      import environ, listdir
 from pathlib import Path
+import re
 from shutil  import which
 import sys
 
+from tqdm import tqdm
 import yaml
 
 from subbot import main as subbot, sigint_handler
@@ -21,6 +23,11 @@ def expand_args(args, config):
     expanded_args = []
 
     for arg in args:
+        if arg.count('/') != 1:
+            print(f'{arg} not recognised, skipping...')
+            continue
+
+        
         project_pattern, file_pattern = arg.split('/')
         matched_projects = fnfilter(config['projects'], project_pattern)
         if not matched_projects:
@@ -54,6 +61,22 @@ def expand_args(args, config):
 
     return expanded_args
 
+def show_progress(process, desc):
+    with tqdm(
+        range(100), desc, leave=False, file=sys.stderr, bar_format='{l_bar}{bar}|{elapsed}'
+    ) as pbar:
+        curr_percentage = 0
+        last_percentage = 0
+        for line in process.stdout:
+            match = re.search('Progress: (\\d+)%', line)
+            if match is None:
+                continue
+            curr_percentage = int(match.group(1))
+            pbar.update(curr_percentage - last_percentage)
+            last_percentage = curr_percentage
+        if pbar.n == 0: # an error occurred
+            pbar.clear()
+
 def main(args):
     if not args:
         print('Usage: subbotf proj*1/file1* ...')
@@ -81,7 +104,7 @@ def main(args):
 
     expanded_args = expand_args(args, config)
     mkvmerge_path = config.get('mkvmerge_path', which('mkvmerge') or 'mkvmerge')
-    subbot(expanded_args, mkvmerge_path)
+    subbot(expanded_args, mkvmerge_path, show_progress)
 
 if __name__ == '__main__':
     sigint_handler()

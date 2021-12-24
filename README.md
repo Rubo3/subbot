@@ -1,10 +1,10 @@
 # `subbot`
 
-`subbot` is a simple command-line tool which helps you automate the last part of subtitles management, taking from you the burden of merging them into their video files with the properties you want.
+`subbot` is a simple, self-contained, command-line tool which helps you automate the last part of subtitles management, lifting from you the burden of merging them into their video files with the properties you want.
 
 A modified version of Sheldon Woodward's [pymkv](https://github.com/sheldonkwoodward/pymkv) is provided, which adds support for a custom `mkvmerge` binary path, lifts the restriction on MKV-only source files and removes its external dependencies. Currently `subbot` works with Matroska video (MKV), QuickTime/MP4 and Advanced SubStation Alpha (ASS) source files only. The restriction is hard-coded: while in theory it should work with all the file types supported by `mkvmerge`, tests need to be done to prove it.
 
-As it prints in the standard output only the paths of the file being muxed (source) and of the muxed file (destination), it is composable with other programs, in the spirit of the Unix tradition. For example, its output can be piped to another program which uploads the muxed files somewhere.
+As it prints in the standard output only the path of the muxed (destination) file, it is composable with other programs, in the spirit of the Unix tradition. For example, its output can be piped to another program which uploads the muxed files somewhere.
 
 ## How to use
 
@@ -26,6 +26,8 @@ python subbot.py \
 
 will merge in `~/path4` the the files matched in `~/path1`, `~/path2` and `~/path3`, while the files matched in `~/path5` and `~/path6` will be merged in `~/path5`, as no output path was specified. Please note that if you want to merge your files inside their source directories, you have to specify them after the last optional output path, or you have not to specify an output path at all.
 
+A `main` function is available to customise the arguments, the `mkvmerge` path and the `show_progress` function to execute while `mkvmerge` is running. At the moment, the `show_progress` function accepts the `Popen` process object as its first argument, and the string of the being-muxed (destination) file as its second, as these are the objects needed by `subbotf` to show a progress bar (see *[One more thing](#One-more-thing)*).
+
 ## How it works
 
 It makes the assumption that the videos and the subtitles share the same stem (the file name excluding the extension), except the subtitles filenames also have the properties you want to embed into the tracks, written in any order just before their extension, one after the other, enclosed by square brackets, with no other characters between them, and this block is preceded by a space (` `). The supported properties are:
@@ -40,7 +42,7 @@ I think an example speaks for itself: if you have a video named `example.mkv`, a
 
 ## One more thing
 
-I've provided another script, `subbotf.py`, which is an extension to `subbot` that aims to simplify the job even more, especially when you do it often and you have many projects to manage. It depends on [PyYAML](https://pypi.org/project/PyYAML/) and needs a `projects.yaml` file (hence the "f" in "subbotf"), placed within the same directory of the script and structured like this (note the following are all the options available):
+I've provided another script, `subbotf.py`, which is an extension to `subbot` that aims to simplify the job even more, especially when you do it often and you have many projects to manage. It depends on [PyYAML](https://pypi.org/project/PyYAML/) and [tqdm](https://pypi.org/project/tqdm/) and needs a `projects.yaml` file (hence the `f` in `subbotf`), placed within the same directory of the script, or another file whose absolute path is specified in the `$SUBBOTF_PROJECTS` environment variable, and structured like this (note the following are all the options available):
 
 ```yaml
 projects:
@@ -65,11 +67,14 @@ The command syntax is as follows:
 python subbotf.py proj*1/file1* ...
 ```
 
-Every argument consists of a glob of a project's name (`proj*1`), separated by a slash (`/`), and a glob of the videos and subtitles files you want to merge. The script then matches the files with the pattern you have specified, checks whether they are tracked in their respective project in `projects.yaml`, then generates the appropriate arguments and passes them to `subbot`.
+Every argument consists of a glob of a project's name (`proj*1`), separated by a slash (`/`), and a glob of the videos and subtitles files you want to merge. The script then matches the files with the pattern you have specified, checks whether they are tracked in their respective project in `projects.yaml`, then generates the appropriate arguments and passes them to `subbot`. If an argument does not contain exactly one `/`, it will be not recognised and therefore will be skipped.
+
+As a nice touch, when `mkvmerge` is running, a `tqdm` progress bar shows the current percentage of the process' completion.
 
 ## Contribution
 
 All contributions are welcome! If you want to help, please open a new issue, so that we can discuss about it.
 
 ## License
+
 This software is free and open-source and distributed under the MIT License.
