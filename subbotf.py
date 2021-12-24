@@ -109,6 +109,5 @@ def main(args):
 
 if __name__ == '__main__':
     subbot.sigint_handler()
-    args = sys.argv
     args = sys.argv[1:]
     sys.exit(main(args))
