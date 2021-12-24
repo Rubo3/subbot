@@ -27,7 +27,6 @@ def expand_args(args, config):
             print(f'{arg} not recognised, skipping...')
             continue
 
-        
         project_pattern, file_pattern = arg.split('/')
         matched_projects = fnfilter(config['projects'], project_pattern)
         if not matched_projects:
@@ -61,9 +60,9 @@ def expand_args(args, config):
 
     return expanded_args
 
-def show_progress(process, desc):
+def show_progress(process, mux_path):
     with tqdm(
-        range(100), desc, leave=False, file=sys.stderr, bar_format='{l_bar}{bar}|{elapsed}'
+        range(100), mux_path, leave=False, file=sys.stderr, bar_format='{l_bar}{bar}|{elapsed}'
     ) as pbar:
         curr_percentage = 0
         last_percentage = 0
