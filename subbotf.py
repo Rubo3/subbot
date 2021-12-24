@@ -9,7 +9,7 @@ import sys
 from tqdm import tqdm
 import yaml
 
-from subbot import main as subbot, sigint_handler
+import subbot
 
 def glob_pattern(patterns):
     matches = []
@@ -24,7 +24,7 @@ def expand_args(args, config):
 
     for arg in args:
         if arg.count('/') != 1:
-            print(f'{arg} not recognised, skipping...')
+            print(f"Unrecognised '{arg}', skipping...")
             continue
 
         project_pattern, file_pattern = arg.split('/')
@@ -38,14 +38,14 @@ def expand_args(args, config):
         subtitles = glob_pattern(config['projects'][project]['subtitles'])
         matched_subtitles = filter(check_match, subtitles)
         if not matched_subtitles:
-            print(f'No subtitles found for "{arg}", skipping...')
+            print(f'No subtitles associated to "{arg}", skipping...')
             continue
         expanded_args.extend(matched_subtitles)
 
         videos = glob_pattern(config['projects'][project]['video'])
         matched_videos = filter(check_match, videos)
         if not matched_videos:
-            print(f'No video found for "{arg}", skipping...')
+            print(f'No video associated to "{arg}", skipping...')
             continue
         expanded_args.extend(matched_videos)
 
@@ -103,9 +103,12 @@ def main(args):
 
     expanded_args = expand_args(args, config)
     mkvmerge_path = config.get('mkvmerge_path', which('mkvmerge') or 'mkvmerge')
-    subbot(expanded_args, mkvmerge_path, show_progress)
+    subbot.MKVMERGE_PATH = mkvmerge_path
+    subbot.show_progress = show_progress
+    subbot.main(expanded_args)
 
 if __name__ == '__main__':
-    sigint_handler()
+    subbot.sigint_handler()
+    args = sys.argv
     args = sys.argv[1:]
     sys.exit(main(args))
