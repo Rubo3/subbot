@@ -1,12 +1,13 @@
 from fnmatch import filter as fnfilter, fnmatch
-from glob import glob
-from os import environ, listdir
+from glob    import glob
+from os      import environ, listdir
 from pathlib import Path
+from shutil  import which
 import sys
 
 import yaml
 
-from subbot import main, sigint_handler
+from subbot import main as subbot, sigint_handler
 
 def glob_pattern(patterns):
     matches = []
@@ -23,7 +24,7 @@ def expand_args(args, config):
         project_pattern, file_pattern = arg.split('/')
         matched_projects = fnfilter(config['projects'], project_pattern)
         if not matched_projects:
-            print(f'No project matches the pattern in "{arg}"')
+            print(f"No project matches the pattern in '{arg}'.")
             continue
         project = matched_projects[0]
         check_match = lambda filepath: fnmatch(Path(filepath).name, file_pattern)
@@ -53,12 +54,10 @@ def expand_args(args, config):
 
     return expanded_args
 
-if __name__ == '__main__':
-    sigint_handler()
-    args = sys.argv[1:]
+def main(args):
     if not args:
         print('Usage: subbotf proj*1/file1* ...')
-        sys.exit(0)
+        return 0
 
     script_parent = Path(__file__).parent.absolute()
     if 'SUBBOTF_PROJECTS' in environ:
@@ -67,19 +66,24 @@ if __name__ == '__main__':
         projects = script_parent / 'projects.yaml'
     else:
         print(
-            f'File `projects.yaml` not found, please add it in `{script_parent}`,'
-             'or specify a file path in $SUBBOTF_PROJECTS',
+            f"File 'projects.yaml' not found, please add it in '{script_parent}',"
+             "or specify a file path in $SUBBOTF_PROJECTS.",
             file=sys.stderr
         )
-        sys.exit(1)
+        return 1
 
     with open(projects) as y:
         config = yaml.safe_load(y)
 
     if 'projects' not in config:
-        print(f'No project found, please add at least one in {script_parent / "projects.yaml"}')
-        sys.exit(2)
+        print(f"No project found, please add at least one in '{script_parent / 'projects.yaml'}'.")
+        return 2
 
     expanded_args = expand_args(args, config)
-    mkvmerge_path = config.get('mkvmerge_path', 'mkvmerge')
-    main(expanded_args, mkvmerge_path)
+    mkvmerge_path = config.get('mkvmerge_path', which('mkvmerge') or 'mkvmerge')
+    subbot(expanded_args, mkvmerge_path)
+
+if __name__ == '__main__':
+    sigint_handler()
+    args = sys.argv[1:]
+    sys.exit(main(args))
