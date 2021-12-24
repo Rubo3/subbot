@@ -3,8 +3,8 @@ from pathlib    import Path
 import re
 from shutil     import which
 from signal     import SIGINT, signal
-import subprocess as sp
-from sys        import argv, stderr, exit as sysexit
+import subprocess
+from sys        import argv, stderr, stdout, exit as sysexit
 from traceback  import print_exc
 
 from pymkv import identify_file, ISO639_2_languages, MKVFile, MKVTrack, verify_matroska, \
@@ -22,6 +22,7 @@ MKVMERGE_PATH = which('mkvmerge') or 'mkvmerge'
 
 # Shut down gracefully.
 def sigint_handler():
+    stdout.flush()
     signal(SIGINT, lambda signalnum, stack_frame: sysexit(0))
 
 def identify_files(args):
@@ -144,7 +145,7 @@ def mux(association):
     subtitles_properties = association['subtitles']
 
     try:
-        mkv = MKVFile(video_path, MKVMERGE_PATH)
+        mkv = MKVFile(video_path, mkvmerge_path=MKVMERGE_PATH)
         # Convert the list of MKVTracks (custom, not iterable dictionaries)
         # into a list of standard, iterable dictionaries.
         current_tracks = eval(str(mkv.get_track()))
@@ -169,7 +170,7 @@ def mux(association):
                 mkv.add_track(subtitle_track)
 
         mkvmerge_command = mkv.command(mux_path, subprocess=True)
-        process = sp.Popen(mkvmerge_command, stdout=sp.PIPE, text=True, bufsize=1)
+        process = subprocess.Popen(mkvmerge_command, stdout=subprocess.PIPE, text=True, bufsize=1)
         return process
     except Exception:
         print(
@@ -181,7 +182,9 @@ def mux(association):
 
 # To be set by other users of `main`.
 def show_progress(process, mux_path):
-    pass
+    for line in process.stdout:
+        if line.startswith(('Warning', 'Error')):
+            print(line.strip(), file=stderr)
 
 def merge(association):
     # The first available path
@@ -190,12 +193,11 @@ def merge(association):
     mux_path = first_available_path(output_path / (video_path.stem + '.mkv'))
     association['mux_path'] = mux_path
 
-    proc = mux(association)
-    if proc is None:
+    process = mux(association)
+    if process is None:
         return
-    show_progress(proc, str(mux_path))
-    returncode = proc.wait()
-    print(*filter(lambda l: l.startswith(('Warning', 'Error')), proc.stdout), file=stderr, end='')
+    show_progress(process, str(mux_path))
+    returncode = process.wait()
     if returncode == 0:
         print(mux_path)
     elif returncode == 2:
