@@ -186,7 +186,7 @@ def mux(association):
 def show_progress(process, mux_path):
     for line in process.stdout:
         if line.startswith(('#GUI#warning', '#GUI#error')):
-            pbar.write(f'{line[5].upper()}{line[6:]}'.strip(), file=sys.stderr)
+            pbar.write(f'{line[5].upper()}{line[6:]}'.strip(), file=stderr)
 
 def merge(association):
     # The first available path
