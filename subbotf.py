@@ -67,9 +67,9 @@ def show_progress(process, mux_path):
         curr_percentage = 0
         last_percentage = 0
         for line in process.stdout:
-            match = re.search('Progress: (\\d+)%', line)
-            if line.startswith(('Warning', 'Error')):
-                pbar.write(line.strip(), file=sys.stderr)
+            match = re.search('#GUI#progress (\\d+)%', line)
+            if line.startswith(('#GUI#warning', '#GUI#error')):
+                pbar.write(f'{line[5].upper()}{line[6:]}'.strip(), file=sys.stderr)
             if match is None:
                 continue
             curr_percentage = int(match.group(1))
@@ -112,4 +112,5 @@ def main(args):
 if __name__ == '__main__':
     subbot.sigint_handler()
     args = sys.argv[1:]
+    args = ['F*Z*/Ep. 0*',]
     sys.exit(main(args))

@@ -170,6 +170,8 @@ def mux(association):
                 mkv.add_track(subtitle_track)
 
         mkvmerge_command = mkv.command(mux_path, subprocess=True)
+        # Add option to parse non-translated, `\n`-terminated (instead of `\r`) lines.
+        mkvmerge_command.insert(1, '--gui-mode')
         process = subprocess.Popen(mkvmerge_command, stdout=subprocess.PIPE, text=True, bufsize=1)
         return process
     except Exception:
@@ -183,8 +185,8 @@ def mux(association):
 # To be set by other users of `main`.
 def show_progress(process, mux_path):
     for line in process.stdout:
-        if line.startswith(('Warning', 'Error')):
-            print(line.strip(), file=stderr)
+        if line.startswith(('#GUI#warning', '#GUI#error')):
+            pbar.write(f'{line[5].upper()}{line[6:]}'.strip(), file=sys.stderr)
 
 def merge(association):
     # The first available path
