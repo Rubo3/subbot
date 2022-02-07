@@ -175,10 +175,8 @@ def mux(association):
         process = subprocess.Popen(mkvmerge_command, stdout=subprocess.PIPE, text=True, bufsize=1)
         return process
     except Exception:
-        print(
-            f"While muxing '{video_path}' in '{mux_path}', an exception occurred, skipping...",
-            file=stderr
-        )
+        print(f"While muxing '{video_path}' in '{mux_path}', an exception occurred, skipping...",
+              file=stderr)
         print_exc(file=stderr)
         return None
 
@@ -186,7 +184,7 @@ def mux(association):
 def show_progress(process, mux_path):
     for line in process.stdout:
         if line.startswith(('#GUI#warning', '#GUI#error')):
-            pbar.write(f'{line[5].upper()}{line[6:]}'.strip(), file=stderr)
+            print(f'{line[5].upper()}{line[6:]}'.strip(), file=stderr)
 
 def merge(association):
     # The first available path
@@ -208,11 +206,11 @@ def merge(association):
 def main(args):
     if len(args) < 2:
         print('Usage: subbot file1.vid file1.sub ... [--output dir]')
-        return 0
+        return
 
     if not verify_mkvmerge(MKVMERGE_PATH):
         print('Could not find `mkvmerge`, please add it to $PATH.')
-        return 1
+        sysexit(1)
 
     paths = identify_files(args)
     mux_queue = generate_mux_queue(paths)
@@ -222,4 +220,4 @@ def main(args):
 if __name__ == '__main__':
     sigint_handler()
     args = argv[1:]
-    sysexit(main(args))
+    main(args)

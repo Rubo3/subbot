@@ -61,9 +61,8 @@ def expand_args(args, config):
     return expanded_args
 
 def show_progress(process, mux_path):
-    with tqdm(
-        range(100), mux_path, leave=False, file=sys.stderr, bar_format='{l_bar}{bar}|{elapsed}'
-    ) as pbar:
+    with tqdm(range(100), mux_path, leave=False, file=sys.stderr,
+              bar_format='{l_bar}{bar}|{elapsed}') as pbar:
         curr_percentage = 0
         last_percentage = 0
         for line in process.stdout:
@@ -81,7 +80,7 @@ def show_progress(process, mux_path):
 def main(args):
     if not args:
         print('Usage: subbotf proj*1/file1* ...')
-        return 0
+        return
 
     script_parent = Path(__file__).parent.absolute()
     if 'SUBBOTF_PROJECTS' in environ:
@@ -89,28 +88,25 @@ def main(args):
     elif 'projects.yaml' in listdir(script_parent):
         projects = script_parent / 'projects.yaml'
     else:
-        print(
-            f"File 'projects.yaml' not found, please add it in '{script_parent}',"
-             "or specify a file path in $SUBBOTF_PROJECTS.",
-            file=sys.stderr
-        )
-        return 1
+        print(f"File 'projects.yaml' not found, please add it in '{script_parent}',"
+               "or specify a file path in $SUBBOTF_PROJECTS.",
+              file=sys.stderr)
+        sys.exit(1)
 
     with open(projects) as y:
         config = yaml.safe_load(y)
 
     if 'projects' not in config:
         print(f"No project found, please add at least one in '{script_parent / 'projects.yaml'}'.")
-        return 2
+        sys.exit(2)
 
     expanded_args = expand_args(args, config)
-    mkvmerge_path = config.get('mkvmerge_path', which('mkvmerge') or 'mkvmerge')
-    subbot.MKVMERGE_PATH = mkvmerge_path
+    # MKVMERGE_PATH needs to be a non empty string, otherwise subbot.verify_mkvmerge fails
+    subbot.MKVMERGE_PATH = config.get('mkvmerge_path', which('mkvmerge') or 'mkvmerge')
     subbot.show_progress = show_progress
     subbot.main(expanded_args)
 
 if __name__ == '__main__':
     subbot.sigint_handler()
     args = sys.argv[1:]
-    args = ['F*Z*/Ep. 0*',]
-    sys.exit(main(args))
+    main(args)
