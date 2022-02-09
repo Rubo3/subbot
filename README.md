@@ -75,6 +75,13 @@ As a nice touch, when `mkvmerge` is running, a `tqdm` progress bar shows the cur
 
 All contributions are welcome! If you want to help, please open a new issue, so that we can discuss about it.
 
+## Possible ideas
+
+* Add the `--mkvmerge` and `-m` arguments.
+* Add support for the [other separators](https://gitlab.com/mbunkus/mkvtoolnix/-/wikis/Detecting-track-language-from-filename) in `get_properties`.
+* Do not limit to videos and subtitles only.
+* Make use of `swap_tracks`, `move_track`, etc. in `make_mkvmerge_command`.
+
 ## License
 
 This software is free and open-source and distributed under the MIT License.

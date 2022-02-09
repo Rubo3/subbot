@@ -68,12 +68,12 @@ def show_progress(process, mux_path):
         for line in process.stdout:
             match = re.search('#GUI#progress (\\d+)%', line)
             if line.startswith(('#GUI#warning', '#GUI#error')):
-                pbar.write(f'{line[5].upper()}{line[6:]}'.strip(), file=sys.stderr)
+                pbar.write(line[5:].title().strip(), file=sys.stderr)
             if match is None:
                 continue
+            last_percentage = curr_percentage
             curr_percentage = int(match.group(1))
             pbar.update(curr_percentage - last_percentage)
-            last_percentage = curr_percentage
         if pbar.n == 0: # an error occurred
             pbar.clear()
 
@@ -100,13 +100,12 @@ def main(args):
         print(f"No project found, please add at least one in '{script_parent / 'projects.yaml'}'.")
         sys.exit(2)
 
-    expanded_args = expand_args(args, config)
-    # MKVMERGE_PATH needs to be a non empty string, otherwise subbot.verify_mkvmerge fails
-    subbot.MKVMERGE_PATH = config.get('mkvmerge_path', which('mkvmerge') or 'mkvmerge')
+    if 'mkvmerge_path' in config:
+        subbot.MKVMERGE_PATH = config['mkvmerge_path']
     subbot.show_progress = show_progress
-    subbot.main(expanded_args)
+    args = expand_args(args, config)
+    subbot.main(args)
 
 if __name__ == '__main__':
     subbot.sigint_handler()
-    args = sys.argv[1:]
-    main(args)
+    main(argv[1:])

@@ -8,6 +8,7 @@ import os
 from os.path import expanduser, isfile
 from pathlib import Path
 from re import match
+from shutil import which
 import subprocess as sp
 
 
@@ -17,11 +18,7 @@ def verify_mkvmerge(mkvmerge_path='mkvmerge'):
     mkvmerge_path (str):
         Alternate path to mkvmerge if it is not already in the $PATH variable.
     """
-    try:
-        output = sp.check_output([mkvmerge_path, '-V']).decode()
-    except (sp.CalledProcessError, FileNotFoundError):
-        return False
-    return match('mkvmerge.*', output)
+    return which(mkvmerge_path) is not None
 
 def identify_file(file_path, mkvmerge_path='mkvmerge'):
     """Get information about about the source file. Same as `mvkmerge -J <file_path>`."""
