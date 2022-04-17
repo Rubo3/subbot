@@ -9,7 +9,7 @@ from traceback  import print_exc
 
 from pymkv      import identify_file, ISO639_2_languages, MKVFile, MKVTrack, verify_matroska
 
-MKVMERGE_PATH = which('mkvmerge') or '' # Must be non-None, lest it throws an error
+MKVMERGE_PATH = which('mkvmerge')
 
 # Shut down gracefully.
 def sigint_handler():
@@ -129,9 +129,7 @@ def first_available_path(path):
 
 def make_mkvmerge_command(video_path, subtitles_properties, output_path):
     mkv = MKVFile(video_path, mkvmerge_path=MKVMERGE_PATH)
-    # Convert the list of MKVTracks (custom, non-iterable dictionaries)
-    # into a list of standard, iterable dictionaries.
-    current_tracks = eval(str(mkv.get_track()))
+    current_tracks = mkv.get_track()
 
     for subtitle_path in subtitles_properties:
         track_id = subtitles_properties[subtitle_path].pop('_track_id', 0)
@@ -140,14 +138,16 @@ def make_mkvmerge_command(video_path, subtitles_properties, output_path):
             mkvmerge_path=MKVMERGE_PATH,
             **subtitles_properties[subtitle_path]
         )
+
         if 0 <= track_id < len(current_tracks) \
-        and current_tracks[track_id]['_track_type'] == 'subtitles':
+        and current_tracks[track_id].track_type == 'subtitles':
             mkv.replace_track(track_id, subtitle_track)
             continue
+
         for track in current_tracks:
-            if track['_track_type'] == 'subtitles' \
-            and track['track_name'] == subtitle_track.track_name:
-                mkv.replace_track(track['_track_id'], subtitle_track)
+            if track.track_type == 'subtitles' \
+            and track.track_name == subtitle_track.track_name:
+                mkv.replace_track(track.track_id, subtitle_track)
                 break
         else:
             mkv.add_track(subtitle_track)
@@ -190,7 +190,7 @@ def main(args):
         print('Usage: subbot file1.vid file1.sub ... [--output dir]')
         return
 
-    if which(MKVMERGE_PATH) is None:
+    if MKVMERGE_PATH is None:
         print('Could not find `mkvmerge`, please add it to $PATH.')
         sysexit(1)
 
