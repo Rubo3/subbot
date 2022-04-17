@@ -7,7 +7,7 @@ from subprocess import PIPE, Popen
 from sys        import argv, stderr, stdout, exit as sysexit
 from traceback  import print_exc
 
-from pymkv      import identify_file, ISO639_2_languages, MKVFile, MKVTrack, verify_matroska
+from pymkv      import identify_file, ISO639_2_languages, MKVFile, MKVTrack
 
 MKVMERGE_PATH = which('mkvmerge')
 
