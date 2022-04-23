@@ -20,7 +20,7 @@ def glob_pattern(patterns):
     return matches
 
 def expand_args(args, config):
-    expanded_args = []
+    invocations = []
 
     for arg in args:
         if arg.count('/') != 1:
@@ -33,21 +33,22 @@ def expand_args(args, config):
             print(f"No project matches the pattern in '{arg}'.")
             continue
         project = matched_projects[0]
-        check_match = lambda filepath: fnmatch(Path(filepath).name, file_pattern)
-
-        subtitles = glob_pattern(config['projects'][project]['subtitles'])
-        matched_subtitles = filter(check_match, subtitles)
-        if not matched_subtitles:
-            print(f'No subtitles associated to "{arg}", skipping...')
-            continue
-        expanded_args.extend(matched_subtitles)
+        match_pattern = lambda filepath: fnmatch(Path(filepath).name, file_pattern)
+        args = []
 
         videos = glob_pattern(config['projects'][project]['video'])
-        matched_videos = filter(check_match, videos)
+        matched_videos = filter(match_pattern, videos)
         if not matched_videos:
             print(f'No video associated to "{arg}", skipping...')
             continue
-        expanded_args.extend(matched_videos)
+        args.extend(matched_videos)
+
+        subtitles = glob_pattern(config['projects'][project]['subtitles'])
+        matched_subtitles = filter(match_pattern, subtitles)
+        if not matched_subtitles:
+            print(f'No subtitles associated to "{arg}", skipping...')
+            continue
+        args.extend(matched_subtitles)
 
         output_path = ''
         # The per-project `output_path` has precedence over the global `output_path`,
@@ -56,9 +57,11 @@ def expand_args(args, config):
             output_path = config['projects'][project]['output_path']
         elif 'output_path' in config:
             output_path = config['output_path']
-        expanded_args.extend(['--output', output_path])
+        args.append(output_path)
 
-    return expanded_args
+        invocations.append(args)
+
+    return invocations
 
 def show_progress(process, mux_path):
     with tqdm(range(100), mux_path, leave=False, file=sys.stderr,
@@ -68,12 +71,12 @@ def show_progress(process, mux_path):
         for line in process.stdout:
             match = re.search('#GUI#progress (\\d+)%', line)
             if line.startswith(('#GUI#warning', '#GUI#error')):
-                pbar.write(line[5:].title().strip(), file=sys.stderr)
+                pbar.write(f'{line[5].upper()}{line[6:]}'.strip(), file=sys.stderr)
             if match is None:
                 continue
-            last_percentage = curr_percentage
             curr_percentage = int(match.group(1))
             pbar.update(curr_percentage - last_percentage)
+            last_percentage = curr_percentage
         if pbar.n == 0: # an error occurred
             pbar.clear()
 
@@ -100,11 +103,12 @@ def main(args):
         print(f"No project found, please add at least one in '{script_parent / 'projects.yaml'}'.")
         sys.exit(2)
 
-    if 'mkvmerge_path' in config:
-        subbot.MKVMERGE_PATH = config['mkvmerge_path']
+    invocations = expand_args(args, config)
+    # MKVMERGE_PATH needs to be a non-empty string, otherwise subbot.verify_mkvmerge fails
+    subbot.MKVMERGE_PATH = config.get('mkvmerge_path', 'mkvmerge')
     subbot.show_progress = show_progress
-    args = expand_args(args, config)
-    subbot.main(args)
+    for args in invocations:
+        subbot.main(args)
 
 if __name__ == '__main__':
     subbot.sigint_handler()

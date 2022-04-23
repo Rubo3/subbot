@@ -9,70 +9,58 @@ from traceback  import print_exc
 
 from pymkv      import identify_file, ISO639_2_languages, MKVFile, MKVTrack
 
-MKVMERGE_PATH = which('mkvmerge')
+MKVMERGE_PATH = 'mkvmerge'
 
 # Shut down gracefully.
 def sigint_handler():
     stdout.flush()
     signal(SIGINT, lambda signalnum, stack_frame: sysexit(0))
 
-def identify_files(args):
-    paths = {}
+def make_mux_queue(args):
     subtitles = set()
     videos = set()
 
-    for i, arg in enumerate(args):
-        if isfile(arg):
-            container = identify_file(arg)['container']
-            if not container['recognized']:
-                print(f"Unrecognised container of '{arg}', skipping...", file=stderr)
-                continue
-            if not container['supported']:
-                print(f"Unsupported container of '{arg}', skipping...", file=stderr)
-                continue
-            file_type = container['type']
-            if file_type == 'SSA/ASS subtitles':
-                subtitles.add(Path(arg))
-            elif file_type in {'Matroska', 'QuickTime/MP4'}:
-                videos.add(Path(arg))
-        elif arg in ('--output', '-o') and i + 1 < len(args) and isdir(args[i + 1]):
-            if subtitles and videos:
-                output_dir = args[i + 1]
-                paths[Path(output_dir)] = {'subtitles': subtitles, 'videos': videos}
-            subtitles = set()
-            videos = set()
-        elif Path(arg) not in paths:
+    for arg in args:
+        if not isfile(arg):
             print(f"Unrecognised '{arg}', skipping...", file=stderr)
-    if subtitles and videos:
-        paths[Path.cwd()] = {'subtitles': subtitles, 'videos': videos}
-    return paths
+            continue
+        container = identify_file(arg)['container']
+        if not container['recognized']:
+            print(f"Unrecognised container of '{arg}' by `mkvmerge`, skipping...", file=stderr)
+            continue
+        if not container['supported']:
+            print(f"Unsupported container of '{arg}' by `mkvmerge`, skipping...", file=stderr)
+            continue
+        file_type = container['type']
+        if file_type == 'SSA/ASS subtitles':
+            subtitles.add(Path(arg))
+        elif file_type in {'Matroska', 'QuickTime/MP4'}:
+            videos.add(Path(arg))
+        else:
+            print(f"Unsupported container of '{arg}' by `subbot`, skipping...", file=stderr)
 
-def make_mux_queue(paths):
     mux_queue = []
-    for output_dir in paths:
-        subtitles = paths[output_dir]['subtitles']
-        videos = paths[output_dir]['videos']
 
-        for video in videos:
-            check_match = lambda sub: strip_properties(sub.stem) == video.stem
-            association = {
-                'video_path': video,
-                'output_dir': output_dir,
-                'subtitles': {},
-            }
+    for video in videos:
+        match_file_stem = lambda sub: strip_properties(sub.stem) == video.stem
+        tracks = {
+            'video': video,
+            'subtitles': {},
+        }
 
-            matched_subs = set(filter(check_match, subtitles))
-            subtitles -= matched_subs # subs in matched_subs won't be consumed by other videos
-            for subtitle in matched_subs:
-                properties = get_properties(subtitle.stem)
-                if not properties:
-                    print(f"No properties found in '{subtitle}', skipping...", file=stderr)
-                    continue
-                association['subtitles'][subtitle] = properties
-            if not association['subtitles']:
-                print(f"No subtitles associated to '{video}', skipping...", file=stderr)
+        matched_subs = set(filter(match_file_stem, subtitles))
+        subtitles -= matched_subs # matched subs won't be consumed by other videos
+        for subtitle in matched_subs:
+            properties = get_properties(subtitle.stem)
+            if not properties:
+                print(f"No properties found in '{subtitle}', skipping...", file=stderr)
                 continue
-            mux_queue.append(association)
+            tracks['subtitles'][subtitle] = properties
+        if not tracks['subtitles']:
+            print(f"No subtitles associated to '{video}', skipping...", file=stderr)
+            continue
+        mux_queue.append(tracks)
+
     return mux_queue
 
 def get_properties(filename):
@@ -121,7 +109,7 @@ def first_available_path(path):
     counter_candidates = re.findall(r' \((\d+)\)$', stem)
     if counter_candidates:
         copy_counter += int(*counter_candidates)
-        stem = ''.join(stem.rsplit(f' ({copy_counter})', 1)) # Remove the counter.
+        stem = ''.join(stem.rsplit(f' ({copy_counter})', 1)) # remove the counter
     while path.exists():
         copy_counter += 1
         path = path.parent / (stem + f' ({copy_counter})' + path.suffix)
@@ -163,10 +151,9 @@ def show_progress(process, output_path):
         if line.startswith(('#GUI#warning', '#GUI#error')):
             print(line[5:].title().strip(), file=stderr)
 
-def merge(association):
-    video_path = association['video_path']
-    subtitles_properties = association['subtitles']
-    output_dir = association['output_dir']
+def merge(tracks, output_dir):
+    video_path = track['video_path']
+    subtitles_properties = track['subtitles']
     output_path = first_available_path(output_dir / (video_path.stem + '.mkv'))
 
     try:
@@ -187,17 +174,21 @@ def merge(association):
 
 def main(args):
     if len(args) < 2:
-        print('Usage: subbot file1.vid file1.sub ... [--output dir]')
+        print('Usage: subbot file1.vid file1.sub ... [output_dir]')
         return
 
-    if MKVMERGE_PATH is None:
+    if which(MKVMERGE_PATH) is None:
         print('Could not find `mkvmerge`, please add it to $PATH.')
         sysexit(1)
 
-    paths = identify_files(args)
-    mux_queue = make_mux_queue(paths)
-    for association in mux_queue:
-        merge(association)
+    output_dir = Path.cwd()
+    if isdir(args[-1]):
+        output_dir = Path(args[-1])
+        args.pop(-1)
+
+    mux_queue = make_mux_queue(args)
+    for tracks in mux_queue:
+        merge(tracks, output_dir)
 
 if __name__ == '__main__':
     sigint_handler()
