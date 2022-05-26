@@ -115,7 +115,7 @@ def first_available_path(path):
         path = path.parent / (stem + f' ({copy_counter})' + path.suffix)
     return path
 
-def make_mkvmerge_command(video_path, subtitles_properties, output_path):
+def make_mkvmerge_cmd(video_path, subtitles_properties, output_path):
     mkv = MKVFile(video_path, mkvmerge_path=MKVMERGE_PATH)
     current_tracks = mkv.get_track()
 
