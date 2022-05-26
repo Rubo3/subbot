@@ -152,7 +152,7 @@ def show_progress(process, output_path):
             print(line[5:].title().strip(), file=stderr)
 
 def merge(tracks, output_dir):
-    video_path = tracks['video_path']
+    video_path = tracks['video']
     subtitles_properties = tracks['subtitles']
     output_path = first_available_path(output_dir / (video_path.stem + '.mkv'))
 
