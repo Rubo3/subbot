@@ -4,7 +4,7 @@ from os      import environ, listdir
 from pathlib import Path
 import re
 from shutil  import which
-import sys
+from sys     import argv, stderr, exit as sysexit
 
 from tqdm import tqdm
 import yaml
@@ -64,14 +64,14 @@ def expand_args(args, config):
     return invocations
 
 def show_progress(process, mux_path):
-    with tqdm(range(100), mux_path, leave=False, file=sys.stderr,
+    with tqdm(range(100), mux_path, leave=False, file=stderr,
               bar_format='{l_bar}{bar}|{elapsed}') as pbar:
         curr_percentage = 0
         last_percentage = 0
         for line in process.stdout:
             match = re.search('#GUI#progress (\\d+)%', line)
             if line.startswith(('#GUI#warning', '#GUI#error')):
-                pbar.write(f'{line[5].upper()}{line[6:]}'.strip(), file=sys.stderr)
+                pbar.write(f'{line[5].upper()}{line[6:]}'.strip(), file=stderr)
             if match is None:
                 continue
             curr_percentage = int(match.group(1))
@@ -93,15 +93,15 @@ def main(args):
     else:
         print(f"File 'projects.yaml' not found, please add it in '{script_parent}',"
                "or specify a file path in $SUBBOTF_PROJECTS.",
-              file=sys.stderr)
-        sys.exit(1)
+              file=stderr)
+        sysexit(1)
 
     with open(projects) as y:
         config = yaml.safe_load(y)
 
     if 'projects' not in config:
         print(f"No project found, please add at least one in '{script_parent / 'projects.yaml'}'.")
-        sys.exit(2)
+        sysexit(2)
 
     invocations = expand_args(args, config)
     # MKVMERGE_PATH needs to be a non-empty string, otherwise subbot.verify_mkvmerge fails
@@ -112,4 +112,5 @@ def main(args):
 
 if __name__ == '__main__':
     subbot.sigint_handler()
-    main(argv[1:])
+    args = argv[1:]
+    main(args)
