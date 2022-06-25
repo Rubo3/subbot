@@ -91,6 +91,8 @@ def get_properties(filename):
             properties['default_track'] = True
         elif prop == 'forced':
             properties['forced_track'] = True
+        else:
+            print(f"'{prop}' not recognised in '{filename}', skipping...")
     return properties
 
 def strip_properties(filename):
