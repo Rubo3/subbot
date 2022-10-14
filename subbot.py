@@ -9,10 +9,10 @@ from traceback  import print_exc
 
 from pymkv      import identify_file, ISO639_2_languages, MKVFile, MKVTrack
 
-MKVMERGE_PATH = 'mkvmerge'
+MKVMERGE_PATH: str = 'mkvmerge' # Let shutil.which find the executable.
 
-# Shut down gracefully.
-def sigint_handler():
+# Shut down gracefully in case of a SIGINT, without printing the traceback.
+def handle_sigint():
     stdout.flush()
     signal(SIGINT, lambda signalnum, stack_frame: sysexit(0))
 
@@ -194,4 +194,4 @@ def main(args):
 
 if __name__ == '__main__':
     sigint_handler()
-    main(argv[1:])
+    main(argv[1:]) # Remove first 

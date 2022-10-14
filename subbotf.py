@@ -111,6 +111,5 @@ def main(args):
         subbot.main(args)
 
 if __name__ == '__main__':
-    subbot.sigint_handler()
-    args = argv[1:]
-    main(args)
+    subbot.handle_sigint()
+    main(argv[1:])

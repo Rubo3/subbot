@@ -1,26 +1,26 @@
 # `subbot`
 
-`subbot` is a simple, self-contained command-line tool which helps you automate the last part of subtitles management, lifting from you the burden of merging them into their video files with the properties you want.
+`subbot` is a command-line tool aiming to automate the management of your subtitles, merging them into their video files with the properties you want. It is a wrapper around [`mkvmerge`](https://mkvtoolnix.download/doc/mkvmerge.html), a core tool of [MKVToolNix](https://mkvtoolnix.download).
 
-A modified version of Sheldon Woodward's [pymkv](https://github.com/sheldonkwoodward/pymkv) is provided, which adds support for a custom `mkvmerge` binary path, lifts the restriction on MKV-only source files and removes its external dependencies. Currently `subbot` works with Matroska video (MKV), QuickTime/MP4 and Advanced SubStation Alpha (ASS) source files only. The restriction is hard-coded: while in theory it should work with all the file types supported by `mkvmerge`, tests need to prove it.
+It has no dependencies. A modified version of Sheldon Woodward's [pymkv](https://github.com/sheldonkwoodward/pymkv) is provided, which adds support for a custom `mkvmerge` executable path, lifts the restriction on MKV-only source files and removes its external dependencies. Currently `subbot` only works with Matroska video (MKV), QuickTime/MP4 and Advanced SubStation Alpha (ASS) files. The restriction is hard-coded: while in theory it should work with all the file formats supported by `mkvmerge`, tests need to prove it.
 
-As it prints on the standard output only the path of the destination files, it is composable with other programs, in the spirit of the Unix tradition. For example, its output can be piped to another program which uploads the files somewhere.
+As it prints on the standard output only the path of the destination files, it designed to be composable with other programs, in the spirit of the Unix tradition. For example, its output can be piped to another program which uploads the files somewhere.
 
 ## How to use
 
-You have to pass it at least the path of one video and its subtitles you want to merge, in any order you want. Then, you can specify an optional directory path, where all the destination video files will be multiplexed. The syntax is as follows:
+`subbot` accepts as arguments a sequence of video and subtitle files you want to merge, in any order you want. After that, you can specify an optional directory, where the resulting videos will be put, otherwise the current working directory will be used. The command syntax is as follows:
 
 ```sh
 python subbot.py file1.vid file1.sub ... [output_dir]
 ```
 
-If you don't specify an output directory, the current working directory will be used. If a video file with the same name as the new one already exists in the output directory, a copy counter will be added to the new one before its extension (e.g. ` (1)`, ` (2)`, etc.), mirroring the behaviour of MKVToolNix.
+If a file with the same name as one of the new ones already exists in the output directory, a copy counter will be added to the new one before its extension (e.g. ` (1)`, ` (2)`, etc.), mirroring the behaviour of MKVToolNix.
 
-A `main` function is available to customise the arguments, the `mkvmerge` path and the `show_progress` function to execute while `mkvmerge` is running. At the moment, the `show_progress` function accepts the `Popen` process object as its first argument, and the string of the destination file as its second.
+In the `subbot` module, you can customise the `MKVMERGE_PATH` variable that is used to find the `mkvmerge` executable, and the `show_progress` function that is executed while `mkvmerge` is running. At the moment, the `show_progress` function accepts the [`Popen`](https://docs.python.org/3/library/subprocess.html#subprocess.Popen) object of the `mkvmerge` process currently running as its first argument, and the string of the destination file as its second. By default it shows the warnings and the errors found in the output of `mkvmerge`.
 
 ## How it works
 
-It makes the assumption that the videos and the subtitles share the same stem (the file name excluding the extension), except the subtitles filenames also have the properties you want to embed into the tracks, written in any order just before their extension, one after the other, enclosed by square brackets, with no other characters between them, and this block is preceded by a space (` `). The supported properties are:
+It makes the assumption that the videos and the subtitles share the same stem (the filename excluding the extension), except the subtitles filenames also have the properties you want to embed into the tracks, written in any order just before their extension, one after the other, enclosed by square brackets, with no other characters between them, and this block is preceded by a space (` `). The supported properties are:
 
 * the track id, an integer value which corresponds to the index of the track (default `0`);
 * the track name, enclosed by apostrophes (`'`, default empty string);
@@ -28,18 +28,18 @@ It makes the assumption that the videos and the subtitles share the same stem (t
 * the track being marked as `default` (default `False`);
 * the track being marked as `forced` (default `False`).
 
-I think an example speaks for itself: if you have a video named `example.mkv`, a subtitle corresponding to it would be `example.ass`, which would use the default values provided above for all those properties. Another one would be `example [2]['Test'][default][eng].ass`, which would force the track to replace the current third track, would be named `Test`, would be marked as `default` and its language would be set to `eng`. As a safety measure, a track will be replaced by a new one only if both are subtitle tracks, otherwise the latter will be appended.
+For example, if you have a video named `example.mkv`, a subtitle corresponding to it would be `example.ass`, which would use the default values provided above for all those properties. Another one would be `example [2]['Test'][default][eng].ass`, which would force the track to replace the current third track, would be named `Test`, would be marked as `default` and its language would be set to `eng`. As a safety measure, a track will be replaced by a new one only if both are subtitle tracks, otherwise the latter will be appended.
 
 ## One more thing
 
-I've provided another script, `subbotf.py`, which is an extension to `subbot` that aims to simplify the job even more, especially when you do it often and you have many projects to manage. It depends on [PyYAML](https://pypi.org/project/PyYAML/) and [tqdm](https://pypi.org/project/tqdm/) and needs a `projects.yaml` file (hence the `f` of "file" in `subbotf`), placed within the same directory of the script (a symbolic link suffices), or another YAML file whose absolute path is specified in the `$SUBBOTF_PROJECTS` environment variable (it has precedence over `projects.yaml`), structured like this (note the following are all the options available):
+Another script is provided, `subbotf`, which is an extension to `subbot` that aims to simplify the job even more, especially when you do it often and you have many projects to manage. It depends on [PyYAML](https://pypi.org/project/PyYAML/) and [tqdm](https://pypi.org/project/tqdm/) and needs a `projects.yaml` file (hence the `f` of "file" in `subbotf`), placed within the same directory of the script (a symbolic link suffices), or another YAML file whose absolute path is specified in the `$SUBBOTF_PROJECTS` environment variable (it has precedence over `projects.yaml`), structured like this (note the following are all the options available):
 
 ```yaml
 projects:
-    Project1:
+    ArbitraryProjectName1:
         subtitles: /path/to/project/subtitles/*.ass
         videos: /path/to/project/videos/*.mkv
-    ProjectN:
+    ArbitraryProjectNameN:
         videos: /path/to/other/project/videos/[glob]*.mkv
         subtitles:
             - /path/to/other/project/subtitles/[gl]*.ass
@@ -49,7 +49,7 @@ mkvmerge_path: /custom/mkvmerge/path
 output_path: /global/output/path
 ```
 
-Your projects reside in the `projects` entry, and every project has its own `subtitles` and `videos`, specified through the use of [globbing](https://en.wikipedia.org/wiki/Glob_(programming)) with one pattern, as in `Project1`, or with a list of patterns, as in `ProjectN`'s `subtitles`. You can also specify a custom `mkvmerge` command path, if it's not in your `$PATH`, and a global or per-project output path, with the latter having precedence over the first one, and the first one having precedence over the current working directory.
+Your projects reside in the `projects` entry, and every project has its own `subtitles` and `videos`, specified through the use of [globbing](https://en.wikipedia.org/wiki/Glob_(programming)) with one pattern, as in the first project, or with a list of patterns, as in the second project's `subtitles`. You can also specify a custom `mkvmerge` command path, if it's not in your `PATH` environment variable, and a global or per-project `output_path`, with the latter having precedence over the former, and the former having precedence over the current working directory.
 
 The command syntax is as follows:
 
@@ -59,7 +59,7 @@ python subbotf.py proj*1/file1* ...
 
 Every argument consists of a glob of a project name (e.g. `proj*1`), separated by a slash (`/`), and a glob of the videos and subtitles files you want to merge (e.g. `file1*`). The script then matches the files with the pattern you have specified, checks whether they are tracked in their respective project in `projects.yaml`, then generates the appropriate arguments and passes them to `subbot`. If an argument does not contain exactly one `/`, it will be not recognised and therefore will be skipped.
 
-As a nice touch, when `mkvmerge` is running, a `tqdm` progress bar shows the current percentage of the process completion.
+When `mkvmerge` is running, a `tqdm` progress bar shows the current percentage of the process completion.
 
 ## Contribution
 
@@ -67,10 +67,10 @@ All contributions are welcome! If you want to help, please open a new issue, so 
 
 ## Possible ideas
 
-* Add the `--mkvmerge` and `-m` arguments, possibly using the standard `argparse` module.
-* Add support for the [other separators](https://gitlab.com/mbunkus/mkvtoolnix/-/wikis/Detecting-track-language-from-filename) in `get_properties`.
+* Add the `--mkvmerge` and `-m` arguments, possibly using the standard `argparse` module, to modify the `mkvmerge` executable path.
+* Add support for the [other separators](https://gitlab.com/mbunkus/mkvtoolnix/-/wikis/Detecting-track-language-from-filename) in the function `get_properties`.
 * Do not limit to videos and subtitles only.
-* Make use of `swap_tracks`, `move_track`, etc. in `make_mkvmerge_command`.
+* Make use of `swap_tracks`, `move_track`, etc. in the function `make_mkvmerge_command`.
 
 ## License
 
